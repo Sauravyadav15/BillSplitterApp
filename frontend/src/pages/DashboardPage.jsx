@@ -39,9 +39,9 @@ export default function DashboardPage() {
     setCreateError(null);
     setCreating(true);
     try {
-      await createGroup({ name: newGroupName });
+      const data = await createGroup({ name: newGroupName });
       setNewGroupName('');
-      await fetchGroups();
+      navigate(`/groups/${data.group.id}`);
     } catch (err) {
       setCreateError(err.response?.data?.error || 'Failed to create group');
     } finally {

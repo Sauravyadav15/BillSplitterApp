@@ -37,8 +37,8 @@ export default function BillDetailPage() {
         <>
           <h1 className="mb-6">Bill Detail</h1>
 
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-start">
-            <div className="card p-6">
+          <div className="flex flex-col gap-6">
+            <div className="card mx-auto w-full max-w-xl p-6">
               <img
                 className="block w-full rounded-xl border border-border shadow-[var(--shadow-md)]"
                 src={resolveImageUrl(state.data.bill.image_url)}

@@ -1,5 +1,5 @@
 /* frontend/src/index.css
-   Design tokens ("Terracotta & Ink") + Tailwind setup + a small set of
+   Design tokens ("Midnight & Sky") + Tailwind setup + a small set of
    shared component classes (card/btn/input/chip/badge/avatar) used across
    pages so JSX doesn't have to repeat long utility strings for the same
    handful of patterns. Page-specific layout is expressed with Tailwind
@@ -8,70 +8,40 @@
 @import 'tailwindcss';
 
 :root {
-  /* Ink on warm paper - light mode */
-  --bg: #f6efe1;
-  --grain: rgba(36, 31, 24, 0.035);
-  --surface: #fffcf6;
-  --surface-2: #f0e6d2;
-  --border: #e3d6ba;
-  --border-strong: #d3c2a0;
-  --text: #6f6353;
-  --text-h: #241f18;
-  --muted: #9c8f79;
+  /* Sky blue accent on a dark navy background - always dark, regardless of
+     OS color-scheme preference. */
+  --bg: #0b1420;
+  --grain: rgba(255, 255, 255, 0.035);
+  --surface: #101c2c;
+  --surface-2: #16263b;
+  --border: #223349;
+  --border-strong: #2f465f;
+  --text: #a9bdd4;
+  --text-h: #eef5fc;
+  --muted: #7387a1;
 
-  --accent: #c1502e;
-  --accent-h: #a83f22;
-  --accent-bg: rgba(193, 80, 46, 0.08);
-  --accent-border: rgba(193, 80, 46, 0.35);
-  --accent-contrast: #fff8f0;
+  --accent: #4fc3f7;
+  --accent-h: #7dd8ff;
+  --accent-bg: rgba(79, 195, 247, 0.16);
+  --accent-border: rgba(79, 195, 247, 0.4);
+  --accent-contrast: #08131d;
 
-  --positive: #2f6f6a;
-  --positive-bg: rgba(47, 111, 106, 0.1);
-  --positive-border: rgba(47, 111, 106, 0.3);
-  --negative: #a3291f;
-  --negative-bg: rgba(163, 41, 31, 0.08);
-  --negative-border: rgba(163, 41, 31, 0.3);
+  --positive: #5fd0c0;
+  --positive-bg: rgba(95, 208, 192, 0.16);
+  --positive-border: rgba(95, 208, 192, 0.4);
+  --negative: #ff6b6b;
+  --negative-bg: rgba(255, 107, 107, 0.16);
+  --negative-border: rgba(255, 107, 107, 0.4);
 
-  --shadow-sm: 0 1px 2px rgba(36, 31, 24, 0.06);
-  --shadow-md: 0 6px 16px -4px rgba(36, 31, 24, 0.12), 0 2px 6px -2px rgba(36, 31, 24, 0.08);
-  --shadow-lg: 0 20px 40px -12px rgba(36, 31, 24, 0.18);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 6px 20px -4px rgba(0, 0, 0, 0.45), 0 2px 8px -2px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 24px 48px -12px rgba(0, 0, 0, 0.55);
 
   --sans: 'Inter', system-ui, 'Segoe UI', Roboto, sans-serif;
   --heading: 'Fraunces', Georgia, 'Times New Roman', serif;
   --mono: ui-monospace, Consolas, monospace;
 
-  color-scheme: light dark;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #16120e;
-    --grain: rgba(255, 247, 235, 0.035);
-    --surface: #201a15;
-    --surface-2: #2a221b;
-    --border: #392f25;
-    --border-strong: #4a3d30;
-    --text: #b7a892;
-    --text-h: #f5ead9;
-    --muted: #8a7c68;
-
-    --accent: #e2794f;
-    --accent-h: #ee9068;
-    --accent-bg: rgba(226, 121, 79, 0.16);
-    --accent-border: rgba(226, 121, 79, 0.4);
-    --accent-contrast: #1a1310;
-
-    --positive: #5fb8ae;
-    --positive-bg: rgba(95, 184, 174, 0.16);
-    --positive-border: rgba(95, 184, 174, 0.4);
-    --negative: #e2695c;
-    --negative-bg: rgba(226, 105, 92, 0.16);
-    --negative-border: rgba(226, 105, 92, 0.4);
-
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 6px 20px -4px rgba(0, 0, 0, 0.45), 0 2px 8px -2px rgba(0, 0, 0, 0.3);
-    --shadow-lg: 0 24px 48px -12px rgba(0, 0, 0, 0.55);
-  }
+  color-scheme: dark;
 }
 
 /* Exposes the tokens above as Tailwind utilities (bg-surface, text-ink,

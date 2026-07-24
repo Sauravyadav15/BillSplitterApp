@@ -186,8 +186,8 @@ export default function AddBillPage() {
       <h1 className="mb-6">Add Bill</h1>
       <ErrorBanner message={loadError} />
 
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-start">
-        <div className="card p-6 lg:sticky lg:top-24">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+        <div className="card mx-auto w-full max-w-xl p-6">
           <label className="field-label" htmlFor="receipt-image">
             Receipt image
           </label>
