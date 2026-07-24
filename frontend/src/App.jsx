@@ -1,18 +1,33 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
+import LoginPage from './pages/LoginPage';
+import SignupPage from './pages/SignupPage';
+import DashboardPage from './pages/DashboardPage';
+import GroupPage from './pages/GroupPage';
+import AddBillPage from './pages/AddBillPage';
+import BillDetailPage from './pages/BillDetailPage';
 
 function App() {
-
   return (
-    <>
-      <div>
-        <p> Hello, This is Frontend</p>
-        </div>
-    </>
-  )
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+
+          <Route element={<ProtectedRoute />}>
+            <Route path="/" element={<DashboardPage />} />
+            <Route path="/groups/:groupId" element={<GroupPage />} />
+            <Route path="/groups/:groupId/bills/new" element={<AddBillPage />} />
+            <Route path="/groups/:groupId/bills/:billId" element={<BillDetailPage />} />
+          </Route>
+
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
+  );
 }
 
-export default App
+export default App;
