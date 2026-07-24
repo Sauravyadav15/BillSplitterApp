@@ -1,6 +1,6 @@
 // frontend/src/pages/GroupPage.jsx
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getGroup, addMember } from '../api/groups';
@@ -11,6 +11,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorBanner from '../components/ErrorBanner';
 import GroupMembersList from '../components/GroupMembersList';
 import AddMemberForm from '../components/AddMemberForm';
+import AddMembersModal from '../components/AddMembersModal';
 import BillList from '../components/BillList';
 import BalancesPanel from '../components/BalancesPanel';
 import RecordSettlementForm from '../components/RecordSettlementForm';
@@ -26,6 +27,8 @@ export default function GroupPage() {
   const [settlementsState, setSettlementsState] = useState({ data: null, loading: true, error: null });
 
   const [prefillSettlement, setPrefillSettlement] = useState(null);
+  const [showAddMembers, setShowAddMembers] = useState(false);
+  const hasPromptedRef = useRef(false);
 
   const fetchGroup = async () => {
     setGroupState((s) => ({ ...s, loading: true, error: null }));
@@ -75,9 +78,26 @@ export default function GroupPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupId]);
 
+  useEffect(() => {
+    if (groupState.data && !hasPromptedRef.current) {
+      hasPromptedRef.current = true;
+      if (groupState.data.members.length <= 1) {
+        setShowAddMembers(true);
+      }
+    }
+  }, [groupState.data]);
+
   const handleAddMember = async (email) => {
     await addMember(groupId, { email });
     await fetchGroup();
+  };
+
+  const handleAddBillClick = () => {
+    if ((groupState.data?.members.length || 0) <= 1) {
+      setShowAddMembers(true);
+    } else {
+      navigate(`/groups/${groupId}/bills/new`);
+    }
   };
 
   const handleRecordSettlement = async ({ paid_to, amount }) => {
@@ -108,10 +128,18 @@ export default function GroupPage() {
             </div>
           </div>
         )}
-        <button type="button" className="btn btn-primary" onClick={() => navigate(`/groups/${groupId}/bills/new`)}>
+        <button type="button" className="btn btn-primary" onClick={handleAddBillClick}>
           + Add Bill
         </button>
       </div>
+
+      {showAddMembers && groupState.data && (
+        <AddMembersModal
+          members={groupState.data.members}
+          onAddMember={handleAddMember}
+          onContinue={() => setShowAddMembers(false)}
+        />
+      )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Main column */}

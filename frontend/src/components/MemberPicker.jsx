@@ -21,6 +21,7 @@ export default function MemberPicker({ members, selectedIds, onChange }) {
               checked={checked}
               onChange={() => toggle(m.id)}
             />
+            <span aria-hidden="true">{checked ? '☑' : '☐'}</span>
             {m.name}
           </label>
         );
