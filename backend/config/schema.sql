@@ -43,6 +43,7 @@ CREATE TABLE bill_items(
     bill_id UUID NOT NULL REFERENCES bills(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
     price DECIMAL(10,2) NOT NULL,
+    unit_note VARCHAR(255), -- e.g. "0.075 kg @ $6.57/kg", scanned from a weighted receipt line
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

@@ -26,7 +26,7 @@ export default function SignupPage() {
     setSubmitting(true);
     try {
       await signup(name, email, password);
-      navigate('/');
+      navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.error || 'Signup failed');
     } finally {
@@ -40,9 +40,11 @@ export default function SignupPage() {
         onSubmit={handleSubmit}
         className="card w-full max-w-sm [animation:fade-in-up_0.4s_ease_both] p-10 shadow-[var(--shadow-lg)]"
       >
-        <span className="avatar mb-4 h-11 w-11 text-lg">B</span>
+        <Link to="/" className="mb-4 inline-flex">
+          <img src="/icon-64.png" alt="Smart Bill Split" className="h-11 w-11 rounded-xl" />
+        </Link>
         <h1 className="mb-1 !text-3xl">Sign up</h1>
-        <p className="mb-6 text-sm text-text">Start splitting bills with friends.</p>
+        <p className="mb-6 text-sm text-text">Start splitting bills with friends, in real time.</p>
         <ErrorBanner message={error} />
 
         <div className="flex flex-col gap-4">

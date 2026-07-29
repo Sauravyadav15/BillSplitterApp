@@ -2,9 +2,10 @@
 
 import MemberPicker from './MemberPicker';
 
-export default function ReceiptItemRow({ item, members, onChange, onDelete }) {
+export default function ReceiptItemRow({ item, index, members, onChange, onDelete }) {
   return (
     <tr className="hover:bg-accent-soft">
+      <td className="border-b border-border p-2.5 align-top text-sm text-muted">{index + 1}</td>
       <td className="border-b border-border p-2.5 align-top">
         <input
           className="input"
@@ -12,6 +13,7 @@ export default function ReceiptItemRow({ item, members, onChange, onDelete }) {
           value={item.name}
           onChange={(e) => onChange({ ...item, name: e.target.value })}
         />
+        {item.unit_note && <p className="mt-1 max-w-xs truncate px-0.5 text-xs text-muted">{item.unit_note}</p>}
       </td>
       <td className="border-b border-border p-2.5 align-top">
         <input

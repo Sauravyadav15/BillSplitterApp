@@ -64,6 +64,20 @@ function isNoiseLine(line) {
   return NOISE_KEYWORDS.some((keyword) => lower.includes(keyword));
 }
 
+// Many receipt formats glue a product/PLU/UPC code onto the item name,
+// either before it (e.g. a No Frills bill: "06038301095 PC SPLENDIDO TMT")
+// or after it (e.g. a FreshCo bill: "Lentils Red 5574252489") - same kind of
+// noise, opposite position, and it's not specific to grocery stores. A bare
+// number isn't stripped if it looks like a real quantity marker instead
+// (e.g. "2 x", "3 @") - that's meaningful and left in place; only a plain
+// numeric code with nothing to say it's a quantity gets removed.
+const LEADING_ITEM_CODE = /^\(?\d{1,13}\)?[.):-]?\s+(?![x×@])/i;
+const TRAILING_ITEM_CODE = /\s+\(?\d{4,13}\)?$/;
+
+function stripItemCodeNoise(name) {
+  return name.replace(LEADING_ITEM_CODE, '').replace(TRAILING_ITEM_CODE, '').trim();
+}
+
 function hasEnoughLetters(text) {
   return (text.match(/[a-zA-Z]/g) || []).length >= 2;
 }
@@ -96,22 +110,32 @@ function parseReceiptItems(rawText) {
     const namePart = line.slice(0, priceMatch.index).trim();
 
     let name = namePart;
+    let unitNote = null;
     if (!name || !hasEnoughLetters(namePart)) {
       name = lastNonPriceLine;
     } else {
-      // A quantity clause (e.g. "2 @ $0.59") can end up fused onto the same
-      // reconstructed line as the item name it belongs to, rather than
-      // sitting on its own line as usual. Salvage whatever name text comes
-      // before the clause instead of discarding the whole line.
+      // A quantity clause (e.g. "2 @ $0.59" or "0.075 kg @ $6.57/kg") can end
+      // up fused onto the same reconstructed line as the item name it
+      // belongs to, rather than sitting on its own line as usual. Salvage
+      // whatever name text comes before the clause instead of discarding the
+      // whole line - and keep the clause itself as a "unit_note" (the actual
+      // weight/count and per-unit rate) instead of throwing it away, so the
+      // review UI can show it under the name for the shopper to sanity-check
+      // the scanned total against.
       const quantityMatch = namePart.match(QUANTITY_LINE);
       if (quantityMatch) {
+        unitNote = namePart.slice(quantityMatch.index).trim() || null;
         const leading = namePart.slice(0, quantityMatch.index).trim();
         name = hasEnoughLetters(leading) ? leading : lastNonPriceLine;
       }
     }
 
+    if (name) {
+      name = stripItemCodeNoise(name);
+    }
+
     if (name && hasEnoughLetters(name)) {
-      items.push({ name, price });
+      items.push({ name, price, unit_note: unitNote });
     }
 
     lastNonPriceLine = null;
