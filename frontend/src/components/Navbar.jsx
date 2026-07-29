@@ -1,7 +1,8 @@
 // frontend/src/components/Navbar.jsx
 
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import useHideOnScroll from '../hooks/useHideOnScroll';
 
 function initials(name) {
   if (!name) return '?';
@@ -11,29 +12,39 @@ function initials(name) {
 
 export default function Navbar() {
   const { user, logout } = useAuth();
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
+  const visible = useHideOnScroll();
 
   return (
-    <nav className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-surface px-6 py-4 shadow-sm">
-      <Link to="/" className="flex items-center gap-2.5 font-heading text-xl font-semibold text-ink">
-        <span className="avatar h-8 w-8 text-sm">B</span>
-        BillSplit
-      </Link>
-      <div className="flex items-center gap-4">
-        {user && (
-          <div className="flex items-center gap-2.5">
-            <span className="avatar h-8 w-8 text-xs">{initials(user.name)}</span>
-            <span className="hidden text-sm text-text sm:inline">{user.name}</span>
+    <nav
+      className="full-bleed-sticky z-40 rounded-b-2xl border-b border-border bg-surface/80 shadow-md backdrop-blur-md transition-transform duration-300"
+      style={{ transform: visible ? 'translateY(0)' : 'translateY(-100%)' }}
+    >
+      <div className="mx-auto flex max-w-[1180px] items-center justify-between px-6 py-4">
+        <Link to="/dashboard" className="flex items-center gap-2.5 font-heading text-xl font-semibold">
+          <img src="/icon-64.png" alt="" className="h-8 w-8 rounded-lg" />
+          <span className="text-gradient">Smart Bill Split</span>
+        </Link>
+
+        <div className="flex items-center gap-4">
+          {user && (
+            <div className="hidden items-center gap-2.5 sm:flex">
+              <span className="avatar h-8 w-8 text-xs">{initials(user.name)}</span>
+              <span className="text-sm text-text">{user.name}</span>
+            </div>
+          )}
+
+          <div className="flex items-center gap-1 rounded-xl border border-border p-1">
+            <Link to="/dashboard" className="btn btn-ghost !rounded-lg !px-3 !py-1.5 text-xs">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="m3 11 9-8 9 8M5 10v10h5v-6h4v6h5V10" />
+              </svg>
+              Home
+            </Link>
+            <button onClick={logout} className="btn btn-ghost !rounded-lg !px-3 !py-1.5 text-xs">
+              Logout
+            </button>
           </div>
-        )}
-        <button onClick={handleLogout} className="btn btn-ghost !rounded-full !px-4 !py-1.5 text-xs">
-          Logout
-        </button>
+        </div>
       </div>
     </nav>
   );

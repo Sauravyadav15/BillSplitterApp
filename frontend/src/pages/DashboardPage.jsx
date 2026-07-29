@@ -2,16 +2,28 @@
 
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { listGroups, createGroup } from '../api/groups';
+import { getMyBalanceSummary } from '../api/balances';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorBanner from '../components/ErrorBanner';
+import BalanceSummaryCard from '../components/BalanceSummaryCard';
+
+function firstName(name) {
+  if (!name) return '';
+  return name.trim().split(/\s+/)[0];
+}
 
 export default function DashboardPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const [summary, setSummary] = useState(null);
+  const [summaryLoading, setSummaryLoading] = useState(true);
 
   const [newGroupName, setNewGroupName] = useState('');
   const [creating, setCreating] = useState(false);
@@ -30,8 +42,21 @@ export default function DashboardPage() {
     }
   };
 
+  const fetchSummary = async () => {
+    setSummaryLoading(true);
+    try {
+      const data = await getMyBalanceSummary();
+      setSummary(data);
+    } catch {
+      setSummary(null);
+    } finally {
+      setSummaryLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchGroups();
+    fetchSummary();
   }, []);
 
   const handleCreate = async (e) => {
@@ -53,9 +78,20 @@ export default function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-10 sm:px-10">
+      <div className="mb-6">
+        <h1 className="mb-1">
+          Hi <span className="text-gradient">{firstName(user?.name) || 'there'}</span>,
+        </h1>
+        <p className="text-text">Welcome back.</p>
+      </div>
+
+      <div className="mb-8">
+        {(summaryLoading || summary) && <BalanceSummaryCard summary={summary} loading={summaryLoading} />}
+      </div>
+
       <div className="mb-8 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="mb-1">My Groups</h1>
+          <h2 className="mb-1">My Groups</h2>
           <p className="text-text">Everything you're splitting, in one place.</p>
         </div>
         <form className="flex items-center gap-2" onSubmit={handleCreate}>

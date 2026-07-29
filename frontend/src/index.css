@@ -1,47 +1,79 @@
 /* frontend/src/index.css
-   Design tokens ("Midnight & Sky") + Tailwind setup + a small set of
-   shared component classes (card/btn/input/chip/badge/avatar) used across
-   pages so JSX doesn't have to repeat long utility strings for the same
-   handful of patterns. Page-specific layout is expressed with Tailwind
-   utility classes directly in JSX. */
+   Design tokens + Tailwind setup + a small set of shared component classes
+   (card/btn/input/chip/badge/avatar) used across pages so JSX doesn't have
+   to repeat long utility strings for the same handful of patterns.
+   Page-specific layout is expressed with Tailwind utility classes directly
+   in JSX. */
 
 @import 'tailwindcss';
 
 :root {
-  /* Sky blue accent on a dark navy background - always dark, regardless of
-     OS color-scheme preference. */
-  --bg: #0b1420;
-  --grain: rgba(255, 255, 255, 0.035);
-  --surface: #101c2c;
-  --surface-2: #16263b;
-  --border: #223349;
-  --border-strong: #2f465f;
-  --text: #a9bdd4;
-  --text-h: #eef5fc;
-  --muted: #7387a1;
+  /* Light, neutral-gray base built around the Smart Bill Split logomark's
+     three colors: teal (brand/primary/"you're owed"), gold (secondary
+     highlight/accent - logo, kickers, hover glow), near-black (headings).
+     Deep maroon stays for "you owe"/warnings - keeping red for "owe" and
+     teal for "owed" is a deliberate fintech convention, not something the
+     new gold should replace. Cards are white so they lift off the #F2F2F2
+     page background; text colors are derived separately from the border
+     gray since #CBCBCB itself is too light to read as text. */
+  --bg: #f2f2f2;
+  --grain: rgba(0, 0, 0, 0.035);
+  --surface: #ffffff;
+  --surface-2: #ebebeb;
+  --border: #cbcbcb;
+  --border-strong: #a8a8a8;
+  --text: #4a4a4a;
+  --text-h: #1a1917;
+  --muted: #737373;
 
-  --accent: #4fc3f7;
-  --accent-h: #7dd8ff;
-  --accent-bg: rgba(79, 195, 247, 0.16);
-  --accent-border: rgba(79, 195, 247, 0.4);
-  --accent-contrast: #08131d;
+  --accent: #1e6f5c;
+  --accent-h: #2e8b72;
+  --accent-bg: rgba(30, 111, 92, 0.1);
+  --accent-border: rgba(30, 111, 92, 0.35);
+  --accent-contrast: #ffffff;
+  --gradient-brand: linear-gradient(135deg, #1e6f5c, #2e8b72);
 
-  --positive: #5fd0c0;
-  --positive-bg: rgba(95, 208, 192, 0.16);
-  --positive-border: rgba(95, 208, 192, 0.4);
-  --negative: #ff6b6b;
-  --negative-bg: rgba(255, 107, 107, 0.16);
-  --negative-border: rgba(255, 107, 107, 0.4);
+  --positive: #1e6f5c;
+  --positive-h: #2e8b72;
+  --positive-bg: rgba(30, 111, 92, 0.1);
+  --positive-border: rgba(30, 111, 92, 0.35);
+  --gradient-positive: linear-gradient(135deg, #1e6f5c, #2e8b72);
 
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 6px 20px -4px rgba(0, 0, 0, 0.45), 0 2px 8px -2px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 24px 48px -12px rgba(0, 0, 0, 0.55);
+  /* Gold - the logo's secondary color. Reserved for brand/decorative
+     accents (kickers, footer labels, step badges, hover glow) - never
+     used as a money-semantic color so it doesn't compete with
+     positive/negative on balance screens. */
+  --gold: #f0b429;
+  --gold-h: #cc9923;
+  --gold-bg: rgba(240, 180, 41, 0.14);
+  --gold-border: rgba(240, 180, 41, 0.4);
+  --gold-contrast: #1a1917;
+
+  /* Deep, near-black-teal hero gradient - same accent family as the rest
+     of the app, just pushed darker/richer for the landing page's hero and
+     final CTA band so those two sections can carry bold reference-style
+     contrast without introducing an off-brand color. */
+  --gradient-hero: radial-gradient(120% 140% at 15% 0%, #278a72 0%, #123d33 42%, #06120e 100%);
+  --hero-text: #f4f6f5;
+  --hero-muted: rgba(244, 246, 245, 0.72);
+  --hero-border: rgba(244, 246, 245, 0.14);
+  --hero-surface: rgba(244, 246, 245, 0.08);
+
+  --negative: #4d1717;
+  --negative-h: #6b2828;
+  --negative-bg: rgba(77, 23, 23, 0.1);
+  --negative-border: rgba(77, 23, 23, 0.35);
+  --gradient-negative: linear-gradient(135deg, #4d1717, #6b2828);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 6px 20px -4px rgba(0, 0, 0, 0.1), 0 2px 8px -2px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 24px 48px -12px rgba(0, 0, 0, 0.16);
 
   --sans: 'Inter', system-ui, 'Segoe UI', Roboto, sans-serif;
   --heading: 'Fraunces', Georgia, 'Times New Roman', serif;
-  --mono: ui-monospace, Consolas, monospace;
+  --mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
 
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 /* Exposes the tokens above as Tailwind utilities (bg-surface, text-ink,
@@ -70,8 +102,19 @@
   --color-negative-soft: var(--negative-bg);
   --color-negative-soft-border: var(--negative-border);
 
+  --color-gold: var(--gold);
+  --color-gold-strong: var(--gold-h);
+  --color-gold-soft: var(--gold-bg);
+  --color-gold-soft-border: var(--gold-border);
+  --color-gold-contrast: var(--gold-contrast);
+
   --font-sans: var(--sans);
   --font-heading: var(--heading);
+  --font-mono: var(--mono);
+}
+
+html {
+  overflow-x: hidden;
 }
 
 body {
@@ -87,6 +130,7 @@ body {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
 
 #root {
@@ -96,6 +140,27 @@ body {
   min-height: 100svh;
   display: flex;
   flex-direction: column;
+}
+
+/* Lets a section (landing page hero/CTA bands) escape #root's max-width
+   and bleed edge-to-edge, while its own content stays constrained via
+   .full-bleed > .container. */
+.full-bleed {
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  margin-left: -50vw;
+}
+
+/* Same edge-to-edge trick as .full-bleed, but via margin instead of
+   left+position:relative, so it can be combined with position:sticky
+   (sticky headers) - the two position values can't coexist on one
+   element. */
+.full-bleed-sticky {
+  position: sticky;
+  top: 0;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
 }
 
 ::selection {
@@ -159,11 +224,11 @@ h2 {
 }
 
 h3 {
-  font-family: var(--sans);
-  font-weight: 700;
-  font-size: 12px;
+  font-family: var(--mono);
+  font-weight: 400;
+  font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.12em;
   color: var(--muted);
 }
 
@@ -192,6 +257,18 @@ h3 {
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(1.5);
   }
 }
 
@@ -225,14 +302,23 @@ h3 {
   }
 
   .btn-primary {
-    color: var(--accent-contrast);
-    background-image: linear-gradient(135deg, var(--accent), var(--accent-h));
+    /* !important: .btn/.btn-primary can land on an <a> (react-router Link
+       styled as a button), and the plain `a { color }` rule below is
+       unlayered CSS - unlayered rules always beat @layer components rules
+       in the cascade regardless of selector specificity, so without this
+       the link text silently inherits the accent-green link color instead
+       of accent-contrast (near-invisible on the brand-green gradient). */
+    color: var(--accent-contrast) !important;
+    background-image: var(--gradient-brand);
     box-shadow: var(--shadow-sm);
   }
   .btn-primary:hover:not(:disabled) {
     transform: translateY(-1px);
-    box-shadow: var(--shadow-md);
-    filter: brightness(1.06);
+    /* Warm gold glow under the standard shadow lift - a small, consistent
+       brand touch (the logo's accent color) on the one button every page
+       shares, instead of scattering gold across data-dense app screens. */
+    box-shadow: var(--shadow-md), 0 0 0 1px var(--gold-border);
+    filter: brightness(1.1);
   }
   .btn-primary:active:not(:disabled) {
     transform: translateY(0) scale(0.98);
@@ -241,21 +327,21 @@ h3 {
   .btn-secondary {
     @apply bg-transparent border;
     border-color: var(--border);
-    color: var(--text-h);
+    color: var(--text-h) !important;
   }
   .btn-secondary:hover:not(:disabled) {
     background: var(--accent-bg);
     border-color: var(--accent-border);
-    color: var(--accent-h);
+    color: var(--accent) !important;
   }
 
   .btn-ghost {
     @apply bg-transparent;
-    color: var(--text);
+    color: var(--text) !important;
   }
   .btn-ghost:hover:not(:disabled) {
     background: var(--surface-2);
-    color: var(--text-h);
+    color: var(--text-h) !important;
   }
 
   .field-label {
@@ -274,6 +360,13 @@ h3 {
     outline: none;
     border-color: var(--accent);
     box-shadow: 0 0 0 3px var(--accent-bg);
+  }
+  /* iOS Safari auto-zooms the page on focus when an input's font-size is
+     under 16px - bump it back up just below the sm breakpoint. */
+  @media (max-width: 639px) {
+    .input {
+      font-size: 16px;
+    }
   }
 
   .chip {
@@ -300,18 +393,46 @@ h3 {
     color: var(--negative);
     background: var(--negative-bg);
   }
+  .badge-gold {
+    color: var(--gold-h);
+    background: var(--gold-bg);
+  }
 
   .avatar {
     @apply inline-flex items-center justify-center rounded-full font-bold shrink-0;
-    background: linear-gradient(135deg, var(--accent), var(--accent-h));
+    background-image: var(--gradient-brand);
     color: var(--accent-contrast);
   }
 
   .spinner-ring {
     @apply rounded-full;
-    background: conic-gradient(from 0deg, var(--accent), transparent 70%);
+    background: conic-gradient(from 0deg, var(--accent), var(--accent-h), transparent 70%);
     -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px));
     mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px));
     animation: spin 0.9s linear infinite;
+  }
+
+  /* Gradient-filled headline text - used sparingly on the one or two most
+     important numbers/words per page (greeting name, hero money amounts),
+     not on body copy. */
+  .text-gradient {
+    background-image: var(--gradient-brand);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* Small "live" indicator - a dot that pulses outward, used on the
+     landing page to signal real-time sync (settlement/balance updates). */
+  .live-dot {
+    @apply relative inline-block h-2 w-2 rounded-full shrink-0;
+    background: #4ade80;
+  }
+  .live-dot::after {
+    content: '';
+    @apply absolute inset-0 rounded-full;
+    background: #4ade80;
+    animation: pulse-dot 1.8s ease-out infinite;
   }
 }

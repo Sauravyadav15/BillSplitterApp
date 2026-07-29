@@ -93,6 +93,7 @@ export default function AddBillPage() {
         localId: nextLocalId(),
         name: it.name,
         price: it.price,
+        unit_note: it.unit_note || null,
         contributor_ids: [...allMemberIds],
       }));
       setItems((prev) => [...prev, ...scannedItems]);
@@ -127,7 +128,7 @@ export default function AddBillPage() {
   const handleAddItem = () => {
     setItems((prev) => [
       ...prev,
-      { localId: nextLocalId(), name: '', price: '', contributor_ids: [...allMemberIds] },
+      { localId: nextLocalId(), name: '', price: '', unit_note: null, contributor_ids: [...allMemberIds] },
     ]);
   };
 
@@ -162,9 +163,10 @@ export default function AddBillPage() {
 
     setSubmitting(true);
     try {
-      const payload = items.map(({ name, price, contributor_ids }) => ({
+      const payload = items.map(({ name, price, unit_note, contributor_ids }) => ({
         name,
         price: Number(price),
+        unit_note: unit_note || null,
         contributor_ids,
       }));
       const data = await createBill(groupId, { imageFile, items: payload });
@@ -180,7 +182,7 @@ export default function AddBillPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-10 sm:px-10">
-      <Link to={`/groups/${groupId}`} className="mb-2 inline-flex items-center gap-1 text-sm font-semibold">
+      <Link to={`/groups/${groupId}`} className="btn btn-secondary mb-4 !px-4 !py-2 text-sm">
         &larr; Back to group
       </Link>
       <h1 className="mb-6">Add Bill</h1>
@@ -238,7 +240,7 @@ export default function AddBillPage() {
 
           <div className="mt-6 flex items-center justify-between border-t border-border pt-4">
             <p className="text-text">Running total</p>
-            <p className="font-heading text-2xl font-semibold text-ink">${runningTotal.toFixed(2)}</p>
+            <p className="text-gradient font-heading text-2xl font-semibold">${runningTotal.toFixed(2)}</p>
           </div>
 
           <ErrorBanner message={submitError} />

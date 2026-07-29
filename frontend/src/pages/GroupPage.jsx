@@ -3,11 +3,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { getGroup, addMember } from '../api/groups';
+import { getGroup, addMember, removeMember } from '../api/groups';
 import { listBills } from '../api/bills';
 import { getBalances } from '../api/balances';
 import { createSettlement, listSettlements } from '../api/settlements';
 import LoadingSpinner from '../components/LoadingSpinner';
+import Skeleton from '../components/Skeleton';
 import ErrorBanner from '../components/ErrorBanner';
 import GroupMembersList from '../components/GroupMembersList';
 import AddMemberForm from '../components/AddMemberForm';
@@ -28,6 +29,7 @@ export default function GroupPage() {
 
   const [prefillSettlement, setPrefillSettlement] = useState(null);
   const [showAddMembers, setShowAddMembers] = useState(false);
+  const [memberError, setMemberError] = useState(null);
   const hasPromptedRef = useRef(false);
 
   const fetchGroup = async () => {
@@ -92,6 +94,17 @@ export default function GroupPage() {
     await fetchGroup();
   };
 
+  const handleRemoveMember = async (member) => {
+    setMemberError(null);
+    if (!window.confirm(`Remove ${member.name} from this group?`)) return;
+    try {
+      await removeMember(groupId, member.id);
+      await fetchGroup();
+    } catch (err) {
+      setMemberError(err.response?.data?.error || 'Failed to remove member');
+    }
+  };
+
   const handleAddBillClick = () => {
     if ((groupState.data?.members.length || 0) <= 1) {
       setShowAddMembers(true);
@@ -148,7 +161,14 @@ export default function GroupPage() {
             <h2 className="mb-4">Bills</h2>
             <ErrorBanner message={billsState.error} />
             {billsState.loading ? (
-              <LoadingSpinner />
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="flex flex-col gap-2">
+                    <Skeleton className="h-32 w-full" />
+                    <Skeleton className="h-4 w-2/3" />
+                  </div>
+                ))}
+              </div>
             ) : (
               billsState.data && <BillList bills={billsState.data.bills} />
             )}
@@ -158,7 +178,11 @@ export default function GroupPage() {
             <h2 className="mb-4">Settlement History</h2>
             <ErrorBanner message={settlementsState.error} />
             {settlementsState.loading ? (
-              <LoadingSpinner />
+              <div className="flex flex-col gap-2">
+                {[0, 1, 2].map((i) => (
+                  <Skeleton key={i} className="h-10 w-full" />
+                ))}
+              </div>
             ) : settlementsState.data && settlementsState.data.settlements.length > 0 ? (
               <ul className="flex flex-col gap-2">
                 {settlementsState.data.settlements.map((s) => (
@@ -178,11 +202,15 @@ export default function GroupPage() {
 
         {/* Sidebar */}
         <div className="flex flex-col gap-6">
-          <div className="card p-6">
+          <div className="card border-accent-soft-border p-6">
             <h2 className="mb-4">Balances</h2>
             <ErrorBanner message={balancesState.error} />
             {balancesState.loading ? (
-              <LoadingSpinner />
+              <div className="flex flex-col gap-2">
+                {[0, 1].map((i) => (
+                  <Skeleton key={i} className="h-10 w-full" />
+                ))}
+              </div>
             ) : (
               balancesState.data && (
                 <BalancesPanel
@@ -197,7 +225,15 @@ export default function GroupPage() {
 
           <div className="card p-6">
             <h2 className="mb-4">Members</h2>
-            {groupState.data && <GroupMembersList members={groupState.data.members} />}
+            <ErrorBanner message={memberError} />
+            {groupState.data && (
+              <GroupMembersList
+                members={groupState.data.members}
+                currentUserId={user?.id}
+                creatorId={groupState.data.group.created_by}
+                onRemove={handleRemoveMember}
+              />
+            )}
             <div className="mt-4">
               <AddMemberForm onSubmit={handleAddMember} />
             </div>

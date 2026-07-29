@@ -21,3 +21,8 @@ export async function addMember(groupId, { email }) {
   const res = await apiClient.post(`/groups/${groupId}/members`, { email });
   return res.data;
 }
+
+export async function removeMember(groupId, userId) {
+  const res = await apiClient.delete(`/groups/${groupId}/members/${userId}`);
+  return res.data;
+}

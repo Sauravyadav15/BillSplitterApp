@@ -77,6 +77,7 @@ const createBill = async (req, res) => {
       return {
         name: item.name,
         price,
+        unit_note: item.unit_note || null,
         shares: splitItemPrice(price, item.contributor_ids),
       };
     });
@@ -94,8 +95,8 @@ const createBill = async (req, res) => {
     const responseItems = [];
     for (const item of itemsWithShares) {
       const itemResult = await client.query(
-        'INSERT INTO bill_items (bill_id, name, price) VALUES ($1, $2, $3) RETURNING *',
-        [bill.id, item.name, item.price]
+        'INSERT INTO bill_items (bill_id, name, price, unit_note) VALUES ($1, $2, $3, $4) RETURNING *',
+        [bill.id, item.name, item.price, item.unit_note]
       );
       const billItem = itemResult.rows[0];
 
@@ -110,6 +111,7 @@ const createBill = async (req, res) => {
         id: billItem.id,
         name: billItem.name,
         price: billItem.price,
+        unit_note: billItem.unit_note,
         contributors: item.shares,
       });
     }
@@ -212,6 +214,7 @@ const getBillById = async (req, res) => {
       id: item.id,
       name: item.name,
       price: item.price,
+      unit_note: item.unit_note,
       contributors: contributorsByItem.get(item.id) || [],
     }));
 
@@ -231,13 +234,30 @@ const parseReceipt = async (req, res) => {
       return res.status(400).json({ error: 'A receipt image is required' });
     }
 
-    const rawText = await extractTextFromImage(req.file.path);
+    // PaddleOCR's native inference engine can fail with a bare "Unknown
+    // exception" (or crash the worker outright) under memory pressure - a
+    // transient, machine-load-dependent failure, not a bug in this image or
+    // this code. One retry after a short pause (which also gives a crashed
+    // worker time to respawn, see receiptOcr.js) recovers most of the time;
+    // if it still fails, say so plainly instead of a bare "Server error" so
+    // the user knows to retry later or just add items manually.
+    let rawText;
+    try {
+      rawText = await extractTextFromImage(req.file.path);
+    } catch (firstErr) {
+      console.error('Parse receipt error (attempt 1, retrying):', firstErr);
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      rawText = await extractTextFromImage(req.file.path);
+    }
+
     const items = parseReceiptItems(rawText);
 
     res.status(200).json({ items, raw_text: rawText });
   } catch (err) {
     console.error('Parse receipt error:', err);
-    res.status(500).json({ error: 'Server error' });
+    res.status(503).json({
+      error: 'Receipt scanning is temporarily unavailable (the scanner is under heavy load). Please try again in a moment, or add items manually below.',
+    });
   } finally {
     // This upload is just a scratch file for OCR preview, not a saved bill image.
     if (req.file) {

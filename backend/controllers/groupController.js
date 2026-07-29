@@ -185,5 +185,73 @@ const addMember = async (req, res) => {
   }
 };
 
+// DELETE /groups/:id/members/:userId - remove a member from the group
+const removeMember = async (req, res) => {
+  try {
+    const groupId = req.params.id;
+    const memberId = req.params.userId;
+    const requesterId = req.user.userId;
+
+    // 1. Only the group creator can remove members
+    const groupResult = await pool.query('SELECT created_by FROM groups WHERE id = $1', [groupId]);
+    if (groupResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Group not found' });
+    }
+    if (groupResult.rows[0].created_by !== requesterId) {
+      return res.status(403).json({ error: 'Only the group creator can remove members' });
+    }
+
+    // 2. Check the target is actually a member
+    const targetCheck = await pool.query(
+      'SELECT 1 FROM group_members WHERE group_id = $1 AND user_id = $2',
+      [groupId, memberId]
+    );
+
+    if (targetCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'That user is not a member of this group' });
+    }
+
+    // 3. The group creator can't be removed - there's no ownership transfer
+    if (groupResult.rows[0].created_by === memberId) {
+      return res.status(400).json({ error: 'The group creator cannot be removed' });
+    }
+
+    // 4. Block removal while the member has an outstanding balance - once
+    //    removed they no longer appear in the members list used to build
+    //    the "Record a Settlement" picker, so there'd be no way to settle up.
+    const balanceResult = await pool.query(
+      `SELECT COALESCE(SUM(delta), 0) AS net_balance FROM (
+         SELECT total_amount AS delta FROM bills WHERE group_id = $1 AND added_by = $2
+         UNION ALL
+         SELECT -ic.share_amount AS delta
+         FROM item_contributors ic
+         JOIN bill_items bi ON ic.item_id = bi.id
+         JOIN bills b ON bi.bill_id = b.id
+         WHERE b.group_id = $1 AND ic.user_id = $2
+         UNION ALL
+         SELECT amount AS delta FROM settlements WHERE group_id = $1 AND paid_by = $2
+         UNION ALL
+         SELECT -amount AS delta FROM settlements WHERE group_id = $1 AND paid_to = $2
+       ) t`,
+      [groupId, memberId]
+    );
+    const netBalance = Number(balanceResult.rows[0].net_balance);
+    if (Math.abs(netBalance) >= 0.01) {
+      return res.status(400).json({
+        error: 'This member has an outstanding balance and must settle up before being removed',
+      });
+    }
+
+    // 5. Remove the member
+    await pool.query('DELETE FROM group_members WHERE group_id = $1 AND user_id = $2', [groupId, memberId]);
+
+    res.status(200).json({ message: 'Member removed successfully' });
+
+  } catch (err) {
+    console.error('Remove member error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
 // Don't forget to export
-module.exports = { createGroup, getMyGroups, getGroupById, addMember };
+module.exports = { createGroup, getMyGroups, getGroupById, addMember, removeMember };

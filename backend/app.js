@@ -15,6 +15,7 @@ const groupRoutes = require('./routes/groupRoutes');
 const billRoutes = require('./routes/billRoutes');
 const settlementRoutes = require('./routes/settlementRoutes');
 const balanceRoutes = require('./routes/balanceRoutes');
+const meRoutes = require('./routes/meRoutes');
 const authMiddleware = require('./middleware/authMiddleware');
 
 const app = express();// express app created
@@ -28,6 +29,7 @@ app.use('/groups', groupRoutes);
 app.use('/groups', billRoutes);
 app.use('/groups', settlementRoutes);
 app.use('/groups', balanceRoutes);
+app.use('/me', meRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'BillSplit API is running' });

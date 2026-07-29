@@ -99,4 +99,59 @@ const getGroupBalances = async (req, res) => {
   }
 };
 
-module.exports = { getGroupBalances };
+// GET /me/balance-summary - how much the logged-in user is owed vs. owes,
+// added up across every group they're in (not netted against each other -
+// a $50 receivable in one group and a $30 payable in another group show as
+// $50 owed to them and $30 they owe, since there's no cross-group way to
+// settle one against the other).
+const getMyBalanceSummary = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    const result = await pool.query(
+      `SELECT g.id AS group_id, COALESCE(SUM(t.delta), 0) AS net_balance
+       FROM group_members gm
+       JOIN groups g ON g.id = gm.group_id
+       LEFT JOIN (
+         SELECT group_id, added_by AS user_id, total_amount AS delta FROM bills
+
+         UNION ALL
+
+         SELECT b.group_id, ic.user_id, -ic.share_amount AS delta
+         FROM item_contributors ic
+         JOIN bill_items bi ON ic.item_id = bi.id
+         JOIN bills b ON bi.bill_id = b.id
+
+         UNION ALL
+
+         SELECT group_id, paid_by AS user_id, amount AS delta FROM settlements
+
+         UNION ALL
+
+         SELECT group_id, paid_to AS user_id, -amount AS delta FROM settlements
+       ) t ON t.group_id = g.id AND t.user_id = $1
+       WHERE gm.user_id = $1
+       GROUP BY g.id`,
+      [userId]
+    );
+
+    let willReceive = 0;
+    let willPay = 0;
+    for (const row of result.rows) {
+      const netBalance = Number(row.net_balance);
+      if (netBalance > 0) willReceive += netBalance;
+      else if (netBalance < 0) willPay += -netBalance;
+    }
+
+    res.status(200).json({
+      will_receive: willReceive.toFixed(2),
+      will_pay: willPay.toFixed(2),
+    });
+
+  } catch (err) {
+    console.error('Get my balance summary error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+module.exports = { getGroupBalances, getMyBalanceSummary };
