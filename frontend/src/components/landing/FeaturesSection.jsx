@@ -63,7 +63,7 @@ const FEATURES = [
   },
   {
     title: 'Built for any group',
-    desc: 'Roommates, a weekend trip, a recurring house tab — create as many groups as you need, each with its own members and balance.',
+    desc: 'Roommates splitting the weekly grocery run, a family stocking up for the month, a recurring house tab — create as many groups as you need, each with its own members and balance.',
     icon: (
       <path
         strokeLinecap="round"
@@ -89,17 +89,26 @@ export default function FeaturesSection() {
         </div>
 
         <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {FEATURES.map((f) => (
-            <div key={f.title} className="card card-hover p-6">
-              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent-soft text-accent">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-5 w-5">
-                  {f.icon}
-                </svg>
-              </span>
-              <h2 className="mt-4 !text-base">{f.title}</h2>
-              <p className="mt-2 text-sm leading-relaxed text-text">{f.desc}</p>
-            </div>
-          ))}
+          {FEATURES.map((f, i) => {
+            // Alternate a couple of icons into the brand's gold accent so the
+            // grid doesn't read as one flat wall of teal.
+            const gold = i === 2 || i === 5;
+            return (
+              <div key={f.title} className="card card-hover p-6">
+                <span
+                  className={`flex h-11 w-11 items-center justify-center rounded-xl ${
+                    gold ? 'bg-gold-soft text-gold-strong' : 'bg-accent-soft text-accent'
+                  }`}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-5 w-5">
+                    {f.icon}
+                  </svg>
+                </span>
+                <h2 className="mt-4 !text-base">{f.title}</h2>
+                <p className="mt-2 text-sm leading-relaxed text-text">{f.desc}</p>
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>

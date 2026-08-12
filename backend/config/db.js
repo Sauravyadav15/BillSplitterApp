@@ -1,10 +1,25 @@
 // backend/config/db.js
 
-const { Pool } = require('pg');
+const { Pool, types } = require('pg');
 require('dotenv').config();
 
+// pg's default DATE (oid 1082) parser returns a JS Date at UTC midnight,
+// which then shifts to the wrong calendar day once anything renders it in a
+// non-UTC local timezone (e.g. bills.purchase_date). Keeping it as the raw
+// 'YYYY-MM-DD' string sidesteps that entirely - any timezone interpretation
+// happens explicitly, once, at display time instead of implicitly here.
+types.setTypeParser(1082, (val) => val);
+
+// Jest sets NODE_ENV=test automatically (whether or not it's set anywhere
+// else), so the test suite always lands on its own database instead of
+// whatever DATABASE_URL points the dev server at - tests TRUNCATE every
+// table between runs, which previously wiped real accounts/groups/bills any
+// time `npm test` ran against the same database the dev server was using.
+const connectionString =
+  process.env.NODE_ENV === 'test' ? process.env.TEST_DATABASE_URL : process.env.DATABASE_URL;
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString,
 });
 
 // Test the connection on startup

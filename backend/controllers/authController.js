@@ -3,16 +3,19 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const pool = require('../config/db');
+const { isValidAvatar } = require('../utils/avatar');
 
 // Signup controller
 const signup = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, avatar } = req.body;
 
     // 1. Check if all fields are provided
     if (!name || !email || !password) {
       return res.status(400).json({ error: 'All fields are required' });
     }
+
+    const safeAvatar = isValidAvatar(avatar) ? avatar : null;
 
     // 2. Check if user already exists
     const existingUser = await pool.query(
@@ -30,8 +33,8 @@ const signup = async (req, res) => {
 
     // 4. Insert new user into database
     const newUser = await pool.query(
-      'INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING id, name, email, created_at',
-      [name, email, hashedPassword]
+      'INSERT INTO users (name, email, password, avatar) VALUES ($1, $2, $3, $4) RETURNING id, name, email, avatar, created_at',
+      [name, email, hashedPassword, safeAvatar]
     );
 
     const user = newUser.rows[0];
@@ -103,6 +106,7 @@ const login = async (req, res) => {
         id: user.id,
         name: user.name,
         email: user.email,
+        avatar: user.avatar,
         created_at: user.created_at,
       },
     });

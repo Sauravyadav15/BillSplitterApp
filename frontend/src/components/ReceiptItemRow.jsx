@@ -16,11 +16,12 @@ export default function ReceiptItemRow({ item, index, members, onChange, onDelet
         {item.unit_note && <p className="mt-1 max-w-xs truncate px-0.5 text-xs text-muted">{item.unit_note}</p>}
       </td>
       <td className="border-b border-border p-2.5 align-top">
+        {/* No min="0" - a scanned return/adjustment line (e.g. "-0.98") is a
+            legitimate negative-priced item, not invalid input. */}
         <input
           className="input"
           type="number"
           step="0.01"
-          min="0"
           value={item.price}
           onChange={(e) => onChange({ ...item, price: e.target.value })}
         />

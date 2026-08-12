@@ -11,9 +11,9 @@
   /* Light, neutral-gray base built around the Smart Bill Split logomark's
      three colors: teal (brand/primary/"you're owed"), gold (secondary
      highlight/accent - logo, kickers, hover glow), near-black (headings).
-     Deep maroon stays for "you owe"/warnings - keeping red for "owe" and
-     teal for "owed" is a deliberate fintech convention, not something the
-     new gold should replace. Cards are white so they lift off the #F2F2F2
+     Red stays for "you owe"/warnings - keeping red for "owe" and teal for
+     "owed" is a deliberate fintech convention, not something the gold
+     accent should replace. Cards are white so they lift off the #F2F2F2
      page background; text colors are derived separately from the border
      gray since #CBCBCB itself is too light to read as text. */
   --bg: #f2f2f2;
@@ -59,11 +59,11 @@
   --hero-border: rgba(244, 246, 245, 0.14);
   --hero-surface: rgba(244, 246, 245, 0.08);
 
-  --negative: #4d1717;
-  --negative-h: #6b2828;
-  --negative-bg: rgba(77, 23, 23, 0.1);
-  --negative-border: rgba(77, 23, 23, 0.35);
-  --gradient-negative: linear-gradient(135deg, #4d1717, #6b2828);
+  --negative: #d7263d;
+  --negative-h: #ef4444;
+  --negative-bg: rgba(215, 38, 61, 0.1);
+  --negative-border: rgba(215, 38, 61, 0.35);
+  --gradient-negative: linear-gradient(135deg, #d7263d, #ef4444);
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
   --shadow-md: 0 6px 20px -4px rgba(0, 0, 0, 0.1), 0 2px 8px -2px rgba(0, 0, 0, 0.06);
@@ -272,6 +272,37 @@ h3 {
   }
 }
 
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Respects "reduce motion" system pref by collapsing every animation/
+   transition to effectively instant, rather than skipping the animation
+   classes altogether - keeps the same code path for everyone. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Entrance animation for cards/list rows that mount in - pair with an
+   inline `animationDelay` (e.g. `${index * 60}ms`) for a staggered feel. */
+.reveal {
+  animation: fade-in-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 /* Shared component patterns --------------------------------------------- */
 
 @layer components {
@@ -292,8 +323,11 @@ h3 {
   }
 
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold cursor-pointer select-none;
+    @apply relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-xl px-5 py-2.5 text-sm font-semibold cursor-pointer select-none;
     transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease, background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  }
+  .btn:active:not(:disabled) {
+    transform: scale(0.96);
   }
   .btn:disabled {
     @apply opacity-55 cursor-not-allowed;
@@ -321,7 +355,22 @@ h3 {
     filter: brightness(1.1);
   }
   .btn-primary:active:not(:disabled) {
-    transform: translateY(0) scale(0.98);
+    transform: translateY(0) scale(0.96);
+  }
+  /* Diagonal light sweep across the primary CTA on hover - a single,
+     consistent "premium" motion cue reused everywhere .btn-primary appears,
+     instead of one-off animations per page. */
+  .btn-primary::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(115deg, transparent 40%, rgba(255, 255, 255, 0.35) 50%, transparent 60%);
+    transform: translateX(-120%);
+    transition: transform 0.65s ease;
+    pointer-events: none;
+  }
+  .btn-primary:hover:not(:disabled)::after {
+    transform: translateX(120%);
   }
 
   .btn-secondary {
@@ -421,6 +470,32 @@ h3 {
     -webkit-background-clip: text;
     color: transparent;
     -webkit-text-fill-color: transparent;
+  }
+
+  /* Compact stat card (balance/total/count tiles) - lifts and gains a
+     colored glow on hover so a dashboard row of them doesn't feel static. */
+  .stat-tile {
+    @apply flex flex-col gap-2 p-5;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 1.1rem;
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+  .stat-tile:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md), 0 0 0 1px var(--accent-border);
+  }
+
+  /* Segmented bar showing each contributor's proportional share of a bill
+     item - a quick visual read of "who owes how much of this" instead of
+     just a list of dollar amounts. */
+  .segment-bar {
+    @apply flex h-2 w-full overflow-hidden rounded-full bg-surface-2;
+  }
+  .segment-bar > span {
+    @apply h-full;
+    transition: flex-basis 0.4s ease;
   }
 
   /* Small "live" indicator - a dot that pulses outward, used on the

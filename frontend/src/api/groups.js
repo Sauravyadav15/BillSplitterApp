@@ -2,8 +2,8 @@
 
 import apiClient from './client';
 
-export async function createGroup({ name }) {
-  const res = await apiClient.post('/groups', { name });
+export async function createGroup({ name, icon, color_theme }) {
+  const res = await apiClient.post('/groups', { name, icon, color_theme });
   return res.data;
 }
 

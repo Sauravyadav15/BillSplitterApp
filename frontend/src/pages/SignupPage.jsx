@@ -4,6 +4,9 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import ErrorBanner from '../components/ErrorBanner';
+import AvatarPicker from '../components/AvatarPicker';
+import { HERO_AVATAR_COUNT } from '../components/HeroAvatar';
+import { heroAvatarId } from '../utils/avatars';
 
 export default function SignupPage() {
   const { signup } = useAuth();
@@ -13,6 +16,7 @@ export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [avatarSeed, setAvatarSeed] = useState(() => Math.floor(Math.random() * HERO_AVATAR_COUNT));
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -25,7 +29,7 @@ export default function SignupPage() {
     }
     setSubmitting(true);
     try {
-      await signup(name, email, password);
+      await signup(name, email, password, heroAvatarId(avatarSeed));
       navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.error || 'Signup failed');
@@ -88,6 +92,7 @@ export default function SignupPage() {
               required
             />
           </label>
+          <AvatarPicker value={avatarSeed} onChange={setAvatarSeed} />
           <button type="submit" className="btn btn-primary mt-2" disabled={submitting}>
             {submitting ? 'Signing up...' : 'Sign up'}
           </button>

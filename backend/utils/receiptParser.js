@@ -8,7 +8,12 @@
 // after the price (e.g. "$11.98 C", "$1.49 HC") - as long as no digit appears
 // in that trailing chunk, so it can never accidentally skip past a second,
 // different price no matter how long the allowed gap is.
-const PRICE_AT_END = /\$?\s*(\d+\.\d{2})[^\d]{0,20}$/;
+// Also allows an optional leading "-" (e.g. "FONTAINE SANTE HUMMUS OR DIPS 2
+// -0.98") - some receipts print a manual price adjustment/return as its own
+// negative-priced line rather than folding it into "Saving X" - without
+// capturing the sign here, it gets left behind in the name and the price is
+// read as positive, silently overcharging by 2x the adjustment.
+const PRICE_AT_END = /(-)?\$?\s*(\d+\.\d{2})[^\d]{0,20}$/;
 
 // A "quantity/weight" line (e.g. "2 @ $1.79" or "0.075 kg @ $6.57/kg") carries
 // the price but not the product name - the name is on the preceding line.
@@ -21,12 +26,13 @@ const QUANTITY_LINE = /(\(?\d+\)?\s*[x@])|(\bkg\s*@)|(\/\s*kg)|(\blb\s*@)|(\/\s*
 
 const NOISE_KEYWORDS = [
   'subtotal', 'total', 'saving', 'saved', 'credit', 'store #', 'hst', 'gst',
-  'e&oe', 'trans.', 'account', 'card', 'auth', 'visa', 'thank you',
+  'e&oe', 'trans.', 'account', 'card', 'auth', 'visa', 'debit', 'thank you',
   'customer care', 'rewards', 'points', 'cashier', 'datetime', 'ref #',
   'ref#', 'approved', 'purchase', 'food basic', 'items sold',
   'retain receipt', 'within 14', 'how did we', 'feedback', 'promotional',
   'discount', 'number of items', 'tender', 'change', 'chance', 'mastercard',
-  'price match', 'served by', 'member card', 'spend $', 'earn',
+  'price match', 'served by', 'member card', 'spend $', 'earn', 'gratuity',
+  'tip',
 ];
 
 // Grocery category labels (e.g. "GROCERY", "PRODUCE") print as their own
@@ -82,13 +88,87 @@ function hasEnoughLetters(text) {
   return (text.match(/[a-zA-Z]/g) || []).length >= 2;
 }
 
-function parseReceiptItems(rawText) {
+// Matches a line whose only text (once the trailing price is stripped) is
+// the word "subtotal" itself - not "SUBTOTAL 139.21" mangled with anything
+// else, and specifically not the "TOTAL" (post-tax) or "Total number of
+// items sold" / "Total of your savings" lines that also contain "total".
+// This is the right anchor to sanity-check parsed items against (rather than
+// the post-tax TOTAL) because bill_items never include a tax line - a
+// correctly-parsed item list should sum to the subtotal, not the total.
+const SUBTOTAL_LINE = /^sub[\s-]?total\s*:?$/i;
+
+// The post-tax total - unlike SUBTOTAL_LINE, this must not match "SUBTOTAL"
+// itself (it requires the whole namePart to be just "total"), nor "Total
+// number of items sold" / "Total of your savings" (those have extra words
+// after "total", which the trailing `$` in PRICE_AT_END's namePart slice
+// already excludes here since namePart is everything before the price).
+const TOTAL_LINE = /^total\s*:?$/i;
+
+// A tip/gratuity line isn't on every receipt (grocery receipts never have
+// one; restaurant receipts sometimes do, either pre-printed or handwritten
+// then re-scanned) - "gratuity" covers the more formal print style some
+// restaurants use instead of "tip".
+const TIP_LINE = /^(tip|gratuity)\s*:?$/i;
+
+// A bill-level charge that isn't a purchasable product - tax, a venue fee
+// (e.g. "B.C.H.Fee" - a bottle/can handling fee), a surcharge, a service
+// charge. Word-boundaried so it only matches the word itself, not a
+// substring inside an unrelated product name (e.g. "fee" must not match
+// "COFFEE" or "TOFFEE" - `\bfee\b` doesn't, since there's no boundary
+// between the doubled letters in the middle of those words). Tip/gratuity
+// deliberately isn't included here - it's handled on its own path (see
+// TIP_LINE / NOISE_KEYWORDS) since it's the one charge type that can be
+// personally covered by one member instead of split.
+const CHARGE_LABEL_PATTERN = /\b(tax|hst|gst|pst|vat|surcharge|svc\s*chg|service\s*charge|fee)\b/i;
+
+// Best-effort: finds a labeled amount line (e.g. "SUBTOTAL 64.26"), if OCR
+// picked up that line at all. Returns null (not a guess) when it can't find
+// one - callers should skip whatever sanity check they wanted to run rather
+// than compare against a missing anchor.
+function extractLabeledAmount(rawText, labelPattern) {
+  const lines = rawText
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+
+  for (const line of lines) {
+    const priceMatch = line.match(PRICE_AT_END);
+    if (!priceMatch) continue;
+
+    const namePart = line.slice(0, priceMatch.index).trim();
+    if (labelPattern.test(namePart)) {
+      return parseFloat((priceMatch[1] || '') + priceMatch[2]);
+    }
+  }
+
+  return null;
+}
+
+function extractSubtotal(rawText) {
+  return extractLabeledAmount(rawText, SUBTOTAL_LINE);
+}
+
+function extractTotal(rawText) {
+  return extractLabeledAmount(rawText, TOTAL_LINE);
+}
+
+function extractTip(rawText) {
+  return extractLabeledAmount(rawText, TIP_LINE);
+}
+
+// Single pass over the receipt, classifying each priced line as either a
+// purchasable item or a bill-level charge (see CHARGE_LABEL_PATTERN) -one
+// pass rather than two so the noise-filtering/quantity-clause/item-code
+// logic below can't drift out of sync between an "items" pass and a
+// "charges" pass.
+function parseReceiptLines(rawText) {
   const lines = rawText
     .split('\n')
     .map((line) => line.trim())
     .filter((line) => line.length > 0);
 
   const items = [];
+  const charges = [];
   let lastNonPriceLine = null;
 
   for (const rawLine of lines) {
@@ -96,7 +176,7 @@ function parseReceiptItems(rawText) {
     line = line.replace(EMBEDDED_SAVINGS_PHRASE, ' ').replace(/\s+/g, ' ').trim();
 
     if (!line || isNoiseLine(line)) {
-      continue; // never an item, never a fallback name candidate
+      continue; // never an item or charge, never a fallback name candidate
     }
 
     const priceMatch = line.match(PRICE_AT_END);
@@ -106,8 +186,19 @@ function parseReceiptItems(rawText) {
       continue;
     }
 
-    const price = parseFloat(priceMatch[1]);
+    const price = parseFloat((priceMatch[1] || '') + priceMatch[2]);
     const namePart = line.slice(0, priceMatch.index).trim();
+
+    // A tax/fee/surcharge line describes a bill-level charge, not a
+    // product - route it to `charges` instead of `items` so it doesn't
+    // inflate the items subtotal (and doesn't need a per-item contributor
+    // split of its own; see billController.js, these split equally across
+    // the bill's contributors same as everything else in `charges`).
+    if (hasEnoughLetters(namePart) && CHARGE_LABEL_PATTERN.test(namePart)) {
+      charges.push({ name: namePart, price });
+      lastNonPriceLine = null;
+      continue;
+    }
 
     let name = namePart;
     let unitNote = null;
@@ -141,7 +232,22 @@ function parseReceiptItems(rawText) {
     lastNonPriceLine = null;
   }
 
-  return items;
+  return { items, charges };
 }
 
-module.exports = { parseReceiptItems };
+function parseReceiptItems(rawText) {
+  return parseReceiptLines(rawText).items;
+}
+
+function parseReceiptCharges(rawText) {
+  return parseReceiptLines(rawText).charges;
+}
+
+module.exports = {
+  parseReceiptLines,
+  parseReceiptItems,
+  parseReceiptCharges,
+  extractSubtotal,
+  extractTotal,
+  extractTip,
+};

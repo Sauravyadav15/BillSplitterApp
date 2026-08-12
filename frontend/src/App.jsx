@@ -8,6 +8,7 @@ import DashboardPage from './pages/DashboardPage';
 import GroupPage from './pages/GroupPage';
 import AddBillPage from './pages/AddBillPage';
 import BillDetailPage from './pages/BillDetailPage';
+import ProfilePage from './pages/ProfilePage';
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
             <Route path="/groups/:groupId" element={<GroupPage />} />
             <Route path="/groups/:groupId/bills/new" element={<AddBillPage />} />
             <Route path="/groups/:groupId/bills/:billId" element={<BillDetailPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

@@ -44,6 +44,11 @@ def get_ocr():
             use_textline_orientation=True,
             text_detection_model_name="PP-OCRv5_mobile_det",
             text_recognition_model_name="PP-OCRv5_mobile_rec",
+            # oneDNN's PIR executor on this paddlepaddle build can't run one of
+            # these models' ops (ConvertPirAttribute2RuntimeAttribute /
+            # ArrayAttribute<DoubleAttribute> - a Windows CPU oneDNN bug, not a
+            # config issue). Plain CPU kernels don't hit it.
+            enable_mkldnn=False,
         )
     return _ocr
 
@@ -88,9 +93,35 @@ def boxes_from_image(image_path):
                         "x1": max(xs),
                         "y0": min(ys),
                         "y1": max(ys),
+                        # The axis-aligned box (y1 - y0 above) inflates badly
+                        # for rotated text - a receipt photographed at even a
+                        # modest angle (common: the paper lying at a slight
+                        # tilt, not held perfectly flat/square to the camera)
+                        # produces boxes whose axis-aligned height is much
+                        # taller than the actual glyph height, especially for
+                        # wide multi-word lines (observed ~30-65% inflation at
+                        # only a few degrees of rotation on a real receipt).
+                        # ocrLineBuilder.js needs the true perpendicular text
+                        # height - the poly's left/right edge length, not its
+                        # bounding box - to correctly judge whether two boxes
+                        # belong to the same row; an inflated height makes its
+                        # gap threshold too generous and merges separate rows.
+                        "height": _poly_text_height(poly),
                     }
                 )
     return boxes
+
+
+def _poly_text_height(poly):
+    def edge_length(p1, p2):
+        return ((float(p2[0]) - float(p1[0])) ** 2 + (float(p2[1]) - float(p1[1])) ** 2) ** 0.5
+
+    # PaddleOCR poly order is [top-left, top-right, bottom-right, bottom-left],
+    # so edges 0-3 and 1-2 are the (near-vertical) left/right sides of the
+    # text box - their length is the true text height regardless of rotation.
+    left_edge = edge_length(poly[3], poly[0])
+    right_edge = edge_length(poly[2], poly[1])
+    return (left_edge + right_edge) / 2
 
 
 def main():

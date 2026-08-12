@@ -27,8 +27,8 @@ export function AuthProvider({ children }) {
     return data;
   };
 
-  const signup = async (name, email, password) => {
-    const data = await signupApi({ name, email, password });
+  const signup = async (name, email, password, avatar) => {
+    const data = await signupApi({ name, email, password, avatar });
     persist(data.token, data.user);
     setToken(data.token);
     setUser(data.user);
@@ -42,8 +42,18 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  // Merges a partial user update (e.g. a changed avatar) into both state and
+  // localStorage, without needing a full re-login round trip.
+  const updateUser = (patch) => {
+    setUser((prev) => {
+      const next = { ...prev, ...patch };
+      localStorage.setItem('billsplit_user', JSON.stringify(next));
+      return next;
+    });
+  };
+
   return (
-    <AuthContext.Provider value={{ token, user, login, signup, logout }}>
+    <AuthContext.Provider value={{ token, user, login, signup, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

@@ -19,10 +19,18 @@ export async function parseReceipt(groupId, imageFile) {
   return res.data;
 }
 
-export async function createBill(groupId, { imageFile, items }) {
+export async function createBill(groupId, { imageFiles, items, purchaseDate, extraCharges, tipAmount, tipPaidBy }) {
   const formData = new FormData();
-  formData.append('image', imageFile);
+  for (const file of imageFiles) {
+    formData.append('images', file);
+  }
   formData.append('items', JSON.stringify(items));
+  formData.append('purchase_date', purchaseDate);
+  formData.append('extra_charges', JSON.stringify(extraCharges || []));
+  formData.append('tip_amount', tipAmount || 0);
+  if (tipPaidBy) {
+    formData.append('tip_paid_by', tipPaidBy);
+  }
   const res = await apiClient.post(`/groups/${groupId}/bills`, formData);
   return res.data;
 }

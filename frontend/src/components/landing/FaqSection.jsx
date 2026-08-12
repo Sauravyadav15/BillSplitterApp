@@ -17,7 +17,7 @@ const FAQS = [
   },
   {
     q: 'Can I be part of more than one group?',
-    a: 'Yes. Create as many groups as you need — a trip, your flat, a recurring dinner club — and every group tracks its own members, bills, and balance separately.',
+    a: 'Yes. Create as many groups as you need — your flat\'s grocery runs, a potluck, a recurring house tab — and every group tracks its own members, bills, and balance separately.',
   },
   {
     q: 'What if someone needs to be removed from a group?',

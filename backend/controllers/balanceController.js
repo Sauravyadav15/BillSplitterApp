@@ -17,10 +17,13 @@ const getGroupBalances = async (req, res) => {
       [groupId]
     );
 
-    // 2. Net balance per user across bills paid, items consumed, and settlements.
-    //    Whoever added a bill (added_by) fronted total_amount; every contributor on
-    //    that bill's items owes their share back to that person. Settlements are
-    //    direct repayments that net against those computed debts.
+    // 2. Net balance per user across bills paid, items consumed, tax/tip
+    //    charges, and settlements. Whoever added a bill (added_by) fronted
+    //    total_amount (items + tax + any shared tip - see bill_charges);
+    //    every contributor on that bill's items owes their item share back
+    //    to that person, and every contributor owes their equal share of
+    //    tax/shared-tip too. Settlements are direct repayments that net
+    //    against those computed debts.
     const balancesResult = await pool.query(
       `SELECT t.user_id, u.name, u.email, SUM(t.delta) AS net_balance
        FROM (
@@ -33,6 +36,13 @@ const getGroupBalances = async (req, res) => {
          FROM item_contributors ic
          JOIN bill_items bi ON ic.item_id = bi.id
          JOIN bills b ON bi.bill_id = b.id
+         WHERE b.group_id = $1
+
+         UNION ALL
+
+         SELECT bc.user_id, -bc.amount AS delta
+         FROM bill_charges bc
+         JOIN bills b ON bc.bill_id = b.id
          WHERE b.group_id = $1
 
          UNION ALL
@@ -121,6 +131,12 @@ const getMyBalanceSummary = async (req, res) => {
          FROM item_contributors ic
          JOIN bill_items bi ON ic.item_id = bi.id
          JOIN bills b ON bi.bill_id = b.id
+
+         UNION ALL
+
+         SELECT b.group_id, bc.user_id, -bc.amount AS delta
+         FROM bill_charges bc
+         JOIN bills b ON bc.bill_id = b.id
 
          UNION ALL
 

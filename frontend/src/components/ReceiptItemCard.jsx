@@ -32,11 +32,12 @@ export default function ReceiptItemCard({ item, index, members, onChange, onDele
         <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-muted">
           $
         </span>
+        {/* No min="0" - a scanned return/adjustment line (e.g. "-0.98") is a
+            legitimate negative-priced item, not invalid input. */}
         <input
           className="input pl-6"
           type="number"
           step="0.01"
-          min="0"
           placeholder="0.00"
           value={item.price}
           onChange={(e) => onChange({ ...item, price: e.target.value })}

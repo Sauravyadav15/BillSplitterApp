@@ -30,7 +30,11 @@ function buildLinesFromBoxes(boxes) {
   const withCenters = boxes.map((box) => ({
     box,
     centerY: (box.y0 + box.y1) / 2,
-    height: box.y1 - box.y0,
+    // Prefer the poly-derived, rotation-corrected height (see
+    // ocr_receipt.py's _poly_text_height) - falls back to the axis-aligned
+    // box height only if a caller doesn't provide it, since that inflates
+    // badly for rotated text and corrupts the gap threshold below.
+    height: box.height ?? box.y1 - box.y0,
   }));
 
   withCenters.sort((a, b) => a.centerY - b.centerY);

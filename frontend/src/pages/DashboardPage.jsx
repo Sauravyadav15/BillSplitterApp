@@ -8,6 +8,8 @@ import { getMyBalanceSummary } from '../api/balances';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorBanner from '../components/ErrorBanner';
 import BalanceSummaryCard from '../components/BalanceSummaryCard';
+import GroupAvatarBadge from '../components/GroupAvatarBadge';
+import CreateGroupModal from '../components/CreateGroupModal';
 
 function firstName(name) {
   if (!name) return '';
@@ -25,9 +27,7 @@ export default function DashboardPage() {
   const [summary, setSummary] = useState(null);
   const [summaryLoading, setSummaryLoading] = useState(true);
 
-  const [newGroupName, setNewGroupName] = useState('');
-  const [creating, setCreating] = useState(false);
-  const [createError, setCreateError] = useState(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   const fetchGroups = async () => {
     setLoading(true);
@@ -59,19 +59,10 @@ export default function DashboardPage() {
     fetchSummary();
   }, []);
 
-  const handleCreate = async (e) => {
-    e.preventDefault();
-    setCreateError(null);
-    setCreating(true);
-    try {
-      const data = await createGroup({ name: newGroupName });
-      setNewGroupName('');
-      navigate(`/groups/${data.group.id}`);
-    } catch (err) {
-      setCreateError(err.response?.data?.error || 'Failed to create group');
-    } finally {
-      setCreating(false);
-    }
+  const handleCreate = async ({ name, icon, color_theme }) => {
+    const data = await createGroup({ name, icon, color_theme });
+    setShowCreateModal(false);
+    navigate(`/groups/${data.group.id}`);
   };
 
   if (loading) return <LoadingSpinner />;
@@ -94,24 +85,16 @@ export default function DashboardPage() {
           <h2 className="mb-1">My Groups</h2>
           <p className="text-text">Everything you're splitting, in one place.</p>
         </div>
-        <form className="flex items-center gap-2" onSubmit={handleCreate}>
-          <input
-            className="input sm:w-56"
-            type="text"
-            placeholder="New group name"
-            value={newGroupName}
-            onChange={(e) => setNewGroupName(e.target.value)}
-            minLength={3}
-            required
-          />
-          <button type="submit" className="btn btn-primary whitespace-nowrap" disabled={creating}>
-            {creating ? 'Creating...' : '+ Create'}
-          </button>
-        </form>
+        <button type="button" className="btn btn-primary whitespace-nowrap" onClick={() => setShowCreateModal(true)}>
+          + Create
+        </button>
       </div>
 
+      {showCreateModal && (
+        <CreateGroupModal onCreate={handleCreate} onClose={() => setShowCreateModal(false)} />
+      )}
+
       <ErrorBanner message={error} />
-      <ErrorBanner message={createError} />
 
       {groups.length === 0 ? (
         <div className="card mt-4 flex flex-col items-center gap-2 border-dashed py-16 text-center">
@@ -127,7 +110,7 @@ export default function DashboardPage() {
               onClick={() => navigate(`/groups/${group.id}`)}
               className="card card-hover flex flex-col gap-4 p-6 text-left"
             >
-              <span className="avatar h-11 w-11 text-lg">{group.name[0]?.toUpperCase() || '?'}</span>
+              <GroupAvatarBadge group={group} className="h-11 w-11 text-lg" />
               <div>
                 <p className="font-heading text-lg font-semibold text-ink">{group.name}</p>
                 <p className="text-sm text-muted">

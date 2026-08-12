@@ -18,11 +18,11 @@ export default function LandingNavbar() {
       style={{ transform: visible ? 'translateY(0)' : 'translateY(-100%)' }}
     >
       <div className="mx-auto flex max-w-[1180px] items-center justify-between px-6 py-3">
-        <Link to="/" className="flex shrink-0 items-center gap-2.5">
-          <img src="/icon-64.png" alt="" className="h-9 w-9 rounded-xl sm:h-10 sm:w-10" />
-          <span className="hidden flex-col leading-tight sm:flex">
-            <span className="font-heading text-lg font-semibold text-gradient">Smart Bill Split</span>
-            <span className="font-mono text-[10px] font-normal uppercase tracking-[0.12em] text-muted">
+        <Link to="/" className="flex shrink-0 items-center gap-2">
+          <img src="/icon-64.png" alt="" className="h-7 w-7 rounded-lg sm:h-10 sm:w-10 sm:rounded-xl" />
+          <span className="flex flex-col leading-tight">
+            <span className="font-heading text-sm font-semibold text-gradient sm:text-lg">Smart Bill Split</span>
+            <span className="hidden font-mono text-[10px] font-normal uppercase tracking-[0.12em] text-muted sm:block">
               Scan &middot; Select &middot; Split fairly
             </span>
           </span>

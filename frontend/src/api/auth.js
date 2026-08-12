@@ -2,8 +2,8 @@
 
 import apiClient from './client';
 
-export async function signup({ name, email, password }) {
-  const res = await apiClient.post('/auth/signup', { name, email, password });
+export async function signup({ name, email, password, avatar }) {
+  const res = await apiClient.post('/auth/signup', { name, email, password, avatar });
   return res.data;
 }
 

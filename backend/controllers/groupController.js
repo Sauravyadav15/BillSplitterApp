@@ -2,12 +2,15 @@
 
 const pool = require('../config/db');
 
+// Matches the frontend's fixed GROUP_THEMES ids (frontend/src/utils/groupThemes.js)
+const VALID_THEMES = ['teal', 'gold', 'blue', 'purple', 'pink', 'red', 'orange', 'green'];
+
 // POST /groups - create a new group
 const createGroup = async (req, res) => {
   const client = await pool.connect();  // get a dedicated client for the transaction
 
   try {
-    const { name } = req.body;
+    const { name, icon, color_theme } = req.body;
     const userId = req.user.userId;  // from JWT middleware
 
     // 1. Validate
@@ -15,13 +18,19 @@ const createGroup = async (req, res) => {
       return res.status(400).json({ error: 'Group name must be at least 3 characters' });
     }
 
+    // A single emoji can be several UTF-16 code units (surrogate pairs,
+    // skin-tone/ZWJ modifiers) - cap generously rather than trying to
+    // validate it's exactly one grapheme.
+    const safeIcon = typeof icon === 'string' && icon.length > 0 && icon.length <= 8 ? icon : null;
+    const safeTheme = VALID_THEMES.includes(color_theme) ? color_theme : 'teal';
+
     // 2. Start transaction
     await client.query('BEGIN');
 
     // 3. Insert into groups table
     const groupResult = await client.query(
-      'INSERT INTO groups (name, created_by) VALUES ($1, $2) RETURNING *',
-      [name.trim(), userId]
+      'INSERT INTO groups (name, created_by, icon, color_theme) VALUES ($1, $2, $3, $4) RETURNING *',
+      [name.trim(), userId, safeIcon, safeTheme]
     );
 
     const newGroup = groupResult.rows[0];
@@ -58,7 +67,7 @@ const getMyGroups = async (req, res) => {
     const userId = req.user.userId;
 
     const result = await pool.query(
-      `SELECT g.id, g.name, g.created_by, g.created_at
+      `SELECT g.id, g.name, g.created_by, g.icon, g.color_theme, g.created_at
        FROM groups g
        JOIN group_members gm ON g.id = gm.group_id
        WHERE gm.user_id = $1
@@ -104,7 +113,7 @@ const getGroupById = async (req, res) => {
 
     // 3. Get all members of this group
     const membersResult = await pool.query(
-      `SELECT u.id, u.name, u.email, gm.joined_at
+      `SELECT u.id, u.name, u.email, u.avatar, gm.joined_at
        FROM users u
        JOIN group_members gm ON u.id = gm.user_id
        WHERE gm.group_id = $1
@@ -147,7 +156,7 @@ const addMember = async (req, res) => {
 
     // 3. Find the user to add by email
     const userResult = await pool.query(
-      'SELECT id, name, email FROM users WHERE email = $1',
+      'SELECT id, name, email, avatar FROM users WHERE email = $1',
       [email]
     );
 

@@ -29,15 +29,16 @@ export default function HeroSection() {
             </span>
 
             <h1 className="mt-5 !text-4xl sm:!text-5xl" style={{ color: 'var(--hero-text)' }}>
-              Split bills together,
+              Split the grocery run,
               <br />
-              not on separate phones.
+              not on <span style={{ color: 'var(--gold)' }}>separate phones</span>.
             </h1>
 
             <p className="mt-5 max-w-lg text-base leading-relaxed sm:text-lg" style={{ color: 'var(--hero-muted)' }}>
               Most splitting apps only show the math to whoever typed it in. Smart Bill Split
-              is different: everyone logs in, sees the same shared balances, and the moment someone
-              settles up, it shows for the whole group — with the exact date and time.
+              is different: scan the grocery receipt, everyone logs in and sees the same shared
+              balances, and the moment someone settles up, it shows for the whole group — with
+              the exact date and time.
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -71,9 +72,9 @@ export default function HeroSection() {
             <div className="card p-6 shadow-[var(--shadow-lg)]">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <span className="avatar h-10 w-10 text-sm">G</span>
+                  <span className="avatar h-10 w-10 text-sm">W</span>
                   <div>
-                    <p className="font-heading text-base font-semibold text-ink">Goa Trip</p>
+                    <p className="font-heading text-base font-semibold text-ink">Weekly Groceries</p>
                     <p className="text-xs text-muted">3 members</p>
                   </div>
                 </div>
@@ -93,7 +94,7 @@ export default function HeroSection() {
 
               <div className="mt-5 rounded-2xl p-4" style={{ backgroundImage: 'var(--gradient-positive)' }}>
                 <p className="text-xs font-bold uppercase tracking-wide text-accent-contrast/70">You'll receive</p>
-                <p className="mt-1 font-heading text-2xl font-semibold text-accent-contrast">$210</p>
+                <p className="mt-1 font-heading text-2xl font-semibold text-accent-contrast">$62</p>
               </div>
 
               <div className="mt-8 sm:mt-14" />

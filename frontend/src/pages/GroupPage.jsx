@@ -11,11 +11,30 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import Skeleton from '../components/Skeleton';
 import ErrorBanner from '../components/ErrorBanner';
 import GroupMembersList from '../components/GroupMembersList';
+import GroupAvatarBadge from '../components/GroupAvatarBadge';
+import UserAvatar from '../components/UserAvatar';
 import AddMemberForm from '../components/AddMemberForm';
 import AddMembersModal from '../components/AddMembersModal';
 import BillList from '../components/BillList';
 import BalancesPanel from '../components/BalancesPanel';
 import RecordSettlementForm from '../components/RecordSettlementForm';
+import StatTile from '../components/StatTile';
+
+const WalletIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3 7a2 2 0 0 1 2-2h13a1 1 0 0 1 1 1v3M3 7v11a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-6a1 1 0 0 0-1-1h-5a2 2 0 1 0 0 4h5" />
+  </svg>
+);
+const ReceiptIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M6 3h12v18l-3-2-3 2-3-2-3 2V3Zm2 5h8M8 11h8M8 14h5" />
+  </svg>
+);
+const StackIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+    <path strokeLinecap="round" strokeLinejoin="round" d="m12 3 9 4.5-9 4.5-9-4.5L12 3Zm-9 9 9 4.5 9-4.5M3 16.5 12 21l9-4.5" />
+  </svg>
+);
 
 export default function GroupPage() {
   const { groupId } = useParams();
@@ -120,6 +139,11 @@ export default function GroupPage() {
   };
 
   const membersById = new Map((groupState.data?.members || []).map((m) => [m.id, m]));
+  const totalSpent = (billsState.data?.bills || []).reduce((sum, b) => sum + Number(b.total_amount || 0), 0);
+  const myBalance = Number(
+    balancesState.data?.balances.find((b) => b.user_id === user?.id)?.net_balance || 0
+  );
+  const billCount = billsState.data?.bills.length || 0;
 
   if (groupState.loading) return <LoadingSpinner />;
 
@@ -127,21 +151,34 @@ export default function GroupPage() {
     <div className="mx-auto max-w-6xl px-6 py-10 sm:px-10">
       <ErrorBanner message={groupState.error} />
 
-      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div
+        className="reveal mb-6 flex flex-col gap-6 rounded-2xl border border-border p-6 shadow-[var(--shadow-sm)] sm:flex-row sm:items-center sm:justify-between sm:p-8"
+        style={{ backgroundImage: 'linear-gradient(135deg, var(--accent-bg), transparent 65%)' }}
+      >
         {groupState.data && (
-          <div className="flex items-center gap-4">
-            <span className="avatar h-12 w-12 text-xl">
-              {groupState.data.group.name[0]?.toUpperCase() || '?'}
-            </span>
-            <div>
-              <h1 className="mb-0">{groupState.data.group.name}</h1>
-              <p className="text-sm text-muted">
-                {groupState.data.members.length} member{groupState.data.members.length === 1 ? '' : 's'}
-              </p>
+          <div className="flex min-w-0 items-center gap-4">
+            <GroupAvatarBadge group={groupState.data.group} className="h-14 w-14 shrink-0 text-2xl" />
+            <div className="min-w-0">
+              <h1 className="mb-1.5 truncate">{groupState.data.group.name}</h1>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <div className="flex -space-x-2">
+                  {groupState.data.members.slice(0, 5).map((m) => (
+                    <UserAvatar key={m.id} user={m} className="h-7 w-7 text-[10px] ring-2 ring-surface" />
+                  ))}
+                  {groupState.data.members.length > 5 && (
+                    <span className="avatar h-7 w-7 bg-surface-2 text-[10px] text-muted ring-2 ring-surface" style={{ backgroundImage: 'none' }}>
+                      +{groupState.data.members.length - 5}
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-muted">
+                  {groupState.data.members.length} member{groupState.data.members.length === 1 ? '' : 's'}
+                </p>
+              </div>
             </div>
           </div>
         )}
-        <button type="button" className="btn btn-primary" onClick={handleAddBillClick}>
+        <button type="button" className="btn btn-primary shrink-0 sm:self-start" onClick={handleAddBillClick}>
           + Add Bill
         </button>
       </div>
@@ -154,27 +191,102 @@ export default function GroupPage() {
         />
       )}
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Main column */}
-        <div className="flex flex-col gap-6 lg:col-span-2">
-          <div className="card p-6">
-            <h2 className="mb-4">Bills</h2>
-            <ErrorBanner message={billsState.error} />
-            {billsState.loading ? (
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                {[0, 1, 2].map((i) => (
-                  <div key={i} className="flex flex-col gap-2">
-                    <Skeleton className="h-32 w-full" />
-                    <Skeleton className="h-4 w-2/3" />
-                  </div>
-                ))}
+      {/* Bento stats row - the group's story at a glance before anything else. */}
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatTile
+          icon={<WalletIcon />}
+          label="Your balance"
+          value={myBalance}
+          tone={myBalance > 0 ? 'positive' : myBalance < 0 ? 'negative' : 'default'}
+          delay={0}
+        />
+        <StatTile icon={<ReceiptIcon />} label="Total spent" value={totalSpent} delay={70} />
+        <StatTile icon={<StackIcon />} label="Bills" value={billCount} prefix="" decimals={0} delay={140} />
+      </div>
+
+      {/* Balances - promoted above the bills gallery since "who owes what" is
+          the thing people open a group for. */}
+      <div className="reveal card border-accent-soft-border mb-6 p-6" style={{ animationDelay: '180ms' }}>
+        <h2 className="mb-4">Balances</h2>
+        <ErrorBanner message={balancesState.error} />
+        {balancesState.loading ? (
+          <div className="flex flex-col gap-2">
+            {[0, 1].map((i) => (
+              <Skeleton key={i} className="h-10 w-full" />
+            ))}
+          </div>
+        ) : (
+          balancesState.data && (
+            <BalancesPanel
+              balances={balancesState.data.balances}
+              suggestedSettlements={balancesState.data.suggested_settlements}
+              members={groupState.data?.members}
+              currentUserId={user?.id}
+              onSelectSuggestion={setPrefillSettlement}
+            />
+          )
+        )}
+      </div>
+
+      {/* Bills gallery - full-width now instead of squeezed into a 2/3
+          column, so receipts get room to breathe. */}
+      <div className="reveal card mb-6 p-6" style={{ animationDelay: '240ms' }}>
+        <div className="mb-4 flex items-center justify-between">
+          <h2>Bills</h2>
+          {billsState.data?.bills.length > 0 && (
+            <span className="text-xs font-semibold text-muted">
+              {billsState.data.bills.length} bill{billsState.data.bills.length === 1 ? '' : 's'}
+            </span>
+          )}
+        </div>
+        <ErrorBanner message={billsState.error} />
+        {billsState.loading ? (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="flex flex-col gap-2">
+                <Skeleton className="h-32 w-full" />
+                <Skeleton className="h-4 w-2/3" />
               </div>
-            ) : (
-              billsState.data && <BillList bills={billsState.data.bills} />
+            ))}
+          </div>
+        ) : (
+          billsState.data && <BillList bills={billsState.data.bills} />
+        )}
+      </div>
+
+      {/* Members + settlements, paired at the bottom - reference info you
+          check less often than balances/bills. */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="reveal card p-6" style={{ animationDelay: '300ms' }}>
+          <h2 className="mb-4">Members</h2>
+          <ErrorBanner message={memberError} />
+          {groupState.data && (
+            <GroupMembersList
+              members={groupState.data.members}
+              currentUserId={user?.id}
+              creatorId={groupState.data.group.created_by}
+              onRemove={handleRemoveMember}
+            />
+          )}
+          <div className="mt-4">
+            <AddMemberForm onSubmit={handleAddMember} />
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-6">
+          <div className="reveal card p-6" style={{ animationDelay: '340ms' }}>
+            <h2 className="mb-4">Record a Settlement</h2>
+            {groupState.data && (
+              <RecordSettlementForm
+                members={groupState.data.members}
+                currentUserId={user?.id}
+                prefill={prefillSettlement}
+                onSubmit={handleRecordSettlement}
+              />
             )}
           </div>
 
-          <div className="card p-6">
+          <div className="reveal card p-6" style={{ animationDelay: '380ms' }}>
             <h2 className="mb-4">Settlement History</h2>
             <ErrorBanner message={settlementsState.error} />
             {settlementsState.loading ? (
@@ -186,68 +298,24 @@ export default function GroupPage() {
             ) : settlementsState.data && settlementsState.data.settlements.length > 0 ? (
               <ul className="flex flex-col gap-2">
                 {settlementsState.data.settlements.map((s) => (
-                  <li key={s.id} className="rounded-lg bg-surface-2 px-4 py-2.5 text-sm text-ink">
-                    <span className="font-medium">{membersById.get(s.paid_by)?.name || 'Unknown'}</span> paid{' '}
-                    <span className="font-medium">{membersById.get(s.paid_to)?.name || 'Unknown'}</span>{' '}
-                    <span className="font-semibold text-accent">${s.amount}</span> on{' '}
-                    {new Date(s.created_at).toLocaleDateString()}
+                  <li
+                    key={s.id}
+                    className="flex flex-wrap items-center gap-x-2.5 gap-y-1 rounded-lg bg-surface-2 px-4 py-2.5 text-sm text-ink"
+                  >
+                    <UserAvatar user={membersById.get(s.paid_by)} className="h-6 w-6 text-[9px]" />
+                    <span className="font-medium">{membersById.get(s.paid_by)?.name || 'Unknown'}</span>
+                    <span className="text-muted">paid</span>
+                    <UserAvatar user={membersById.get(s.paid_to)} className="h-6 w-6 text-[9px]" />
+                    <span className="font-medium">{membersById.get(s.paid_to)?.name || 'Unknown'}</span>
+                    <span className="font-semibold text-accent">${s.amount}</span>
+                    <span className="ml-auto shrink-0 text-xs text-muted">
+                      {new Date(s.created_at).toLocaleDateString()}
+                    </span>
                   </li>
                 ))}
               </ul>
             ) : (
               <p>No settlements recorded yet.</p>
-            )}
-          </div>
-        </div>
-
-        {/* Sidebar */}
-        <div className="flex flex-col gap-6">
-          <div className="card border-accent-soft-border p-6">
-            <h2 className="mb-4">Balances</h2>
-            <ErrorBanner message={balancesState.error} />
-            {balancesState.loading ? (
-              <div className="flex flex-col gap-2">
-                {[0, 1].map((i) => (
-                  <Skeleton key={i} className="h-10 w-full" />
-                ))}
-              </div>
-            ) : (
-              balancesState.data && (
-                <BalancesPanel
-                  balances={balancesState.data.balances}
-                  suggestedSettlements={balancesState.data.suggested_settlements}
-                  currentUserId={user?.id}
-                  onSelectSuggestion={setPrefillSettlement}
-                />
-              )
-            )}
-          </div>
-
-          <div className="card p-6">
-            <h2 className="mb-4">Members</h2>
-            <ErrorBanner message={memberError} />
-            {groupState.data && (
-              <GroupMembersList
-                members={groupState.data.members}
-                currentUserId={user?.id}
-                creatorId={groupState.data.group.created_by}
-                onRemove={handleRemoveMember}
-              />
-            )}
-            <div className="mt-4">
-              <AddMemberForm onSubmit={handleAddMember} />
-            </div>
-          </div>
-
-          <div className="card p-6">
-            <h2 className="mb-4">Record a Settlement</h2>
-            {groupState.data && (
-              <RecordSettlementForm
-                members={groupState.data.members}
-                currentUserId={user?.id}
-                prefill={prefillSettlement}
-                onSubmit={handleRecordSettlement}
-              />
             )}
           </div>
         </div>

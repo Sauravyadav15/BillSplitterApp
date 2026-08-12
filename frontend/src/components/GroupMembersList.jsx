@@ -1,10 +1,6 @@
 // frontend/src/components/GroupMembersList.jsx
 
-function initials(name) {
-  if (!name) return '?';
-  const parts = name.trim().split(/\s+/);
-  return ((parts[0]?.[0] || '') + (parts[1]?.[0] || '')).toUpperCase();
-}
+import UserAvatar from './UserAvatar';
 
 export default function GroupMembersList({ members, currentUserId, creatorId, onRemove }) {
   return (
@@ -15,11 +11,11 @@ export default function GroupMembersList({ members, currentUserId, creatorId, on
         const canRemove = onRemove && isOwner && !isCreator;
         return (
           <li key={member.id} className="flex items-center gap-3 rounded-lg bg-surface-2 px-3.5 py-2.5">
-            <span className="avatar h-8 w-8 text-xs">{initials(member.name)}</span>
+            <UserAvatar user={member} className="h-8 w-8 text-xs" />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-ink">
                 {member.name}
-                {isCreator && <span className="ml-1.5 text-xs font-normal text-muted">(creator)</span>}
+                {isCreator && <span className="badge badge-gold ml-1.5 !px-1.5 !py-0 align-middle text-[10px]">Owner</span>}
               </p>
               <p className="truncate text-xs text-muted">{member.email}</p>
             </div>

@@ -1,16 +1,29 @@
-# React + Vite
+# BillSplitterApp — frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React 19 + Vite single-page app, talking to the [backend](../backend/README.md) REST API.
 
-Currently, two official plugins are available:
+For the app's page/component/API-client structure, see [`../docs/architecture.md#frontend-structure`](../docs/architecture.md#frontend-structure). For everything the API returns, see [`../docs/api.md`](../docs/api.md).
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Setup
 
-## React Compiler
+```
+npm install
+npm run dev
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Expects the backend running at `http://localhost:5000` (hardcoded in `src/api/client.js` as `API_BASE_URL`). The logged-in user's JWT is kept in `localStorage` (`billsplit_token`) and attached to every request by `client.js`'s axios interceptor; a `401` response clears it and redirects to `/login`.
 
-## Expanding the ESLint configuration
+## Commands
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- `npm run dev` — Vite dev server.
+- `npm run build` — production build.
+- `npm run lint` — ESLint (flat config, `eslint.config.js`).
+- `npm run preview` — preview a production build.
+
+## Layout
+
+- `pages/` — one component per route (landing, login/signup, dashboard, group, add-bill, bill-detail, profile).
+- `components/` — shared UI, including a `landing/` subfolder used only by the landing page.
+- `api/` — one module per backend resource, all built on the shared `api/client.js` axios instance.
+- `context/AuthContext.jsx` — logged-in user/token state, backs `ProtectedRoute`.
+- `hooks/`, `utils/` — shared small logic (e.g. avatar helpers, group theme constants, contributor colors).

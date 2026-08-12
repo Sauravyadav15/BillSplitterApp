@@ -32,4 +32,11 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
 });
 
-module.exports = { uploadReceiptImage: upload.single('image'), multer };
+module.exports = {
+  uploadReceiptImage: upload.single('image'),
+  // A long receipt is often scanned as several photos ("Scan another part")
+  // - createBill accepts all of them at once. 10 is generous headroom past
+  // any receipt anyone has actually needed to split.
+  uploadReceiptImages: upload.array('images', 10),
+  multer,
+};

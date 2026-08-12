@@ -1,15 +1,15 @@
 // frontend/src/components/landing/DemoSection.jsx
 
 const ITEMS = [
-  { name: 'Beach Shack Dinner', paidBy: 'Priya', amount: 48 },
-  { name: 'Cab to Airport', paidBy: 'Aman', amount: 22 },
-  { name: 'Villa (3 nights)', paidBy: 'Riya', amount: 210 },
+  { name: 'Trader Joe\'s Grocery Run', paidBy: 'Priya', amount: 68 },
+  { name: 'Farmers Market Produce', paidBy: 'Aman', amount: 24 },
+  { name: 'Costco Bulk Order', paidBy: 'Riya', amount: 94 },
 ];
 
 const ACTIVITY = [
   { text: "Riya settled $30 with Aman", time: 'Just now', live: true },
-  { text: 'Priya added "Beach Shack Dinner" — $48', time: '10 min ago' },
-  { text: 'Aman added "Cab to Airport" — $22', time: '1 hr ago' },
+  { text: 'Priya added "Trader Joe\'s Grocery Run" — $68', time: '10 min ago' },
+  { text: 'Aman added "Farmers Market Produce" — $24', time: '1 hr ago' },
 ];
 
 export default function DemoSection() {
@@ -30,7 +30,10 @@ export default function DemoSection() {
         <div className="mt-14 grid gap-6 lg:grid-cols-2">
           <div className="card p-7">
             <div className="flex items-center justify-between">
-              <h2 className="!text-lg">Goa Trip</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="!text-lg">Weekly Groceries</h2>
+                <span className="badge badge-gold">Grocery run</span>
+              </div>
               <span className="badge badge-positive">3 members</span>
             </div>
             <div className="mt-5 flex flex-col gap-3">

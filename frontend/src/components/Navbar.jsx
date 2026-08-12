@@ -3,12 +3,7 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import useHideOnScroll from '../hooks/useHideOnScroll';
-
-function initials(name) {
-  if (!name) return '?';
-  const parts = name.trim().split(/\s+/);
-  return ((parts[0]?.[0] || '') + (parts[1]?.[0] || '')).toUpperCase();
-}
+import UserAvatar from './UserAvatar';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -27,10 +22,13 @@ export default function Navbar() {
 
         <div className="flex items-center gap-4">
           {user && (
-            <div className="hidden items-center gap-2.5 sm:flex">
-              <span className="avatar h-8 w-8 text-xs">{initials(user.name)}</span>
+            <Link
+              to="/profile"
+              className="hidden items-center gap-2.5 rounded-lg px-1.5 py-1 transition-colors hover:bg-surface-2 sm:flex"
+            >
+              <UserAvatar user={user} className="h-8 w-8 text-xs" />
               <span className="text-sm text-text">{user.name}</span>
-            </div>
+            </Link>
           )}
 
           <div className="flex items-center gap-1 rounded-xl border border-border p-1">

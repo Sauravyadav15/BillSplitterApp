@@ -46,8 +46,9 @@ describe('Bill upload and item retrieval', () => {
     const res = await request(app)
       .post(`/groups/${groupId}/bills`)
       .set('Authorization', `Bearer ${token}`)
-      .attach('image', BILL1_PATH)
-      .field('items', JSON.stringify(items));
+      .attach('images', BILL1_PATH)
+      .field('items', JSON.stringify(items))
+      .field('purchase_date', '2026-08-01');
 
     console.log('bill1 items returned by API:', JSON.stringify(res.body.items, null, 2));
 
@@ -74,8 +75,9 @@ describe('Bill upload and item retrieval', () => {
     const createRes = await request(app)
       .post(`/groups/${groupId}/bills`)
       .set('Authorization', `Bearer ${token}`)
-      .attach('image', BILL2_PATH)
-      .field('items', JSON.stringify(items));
+      .attach('images', BILL2_PATH)
+      .field('items', JSON.stringify(items))
+      .field('purchase_date', '2026-08-05');
 
     expect(createRes.status).toBe(201);
     const billId = createRes.body.bill.id;
