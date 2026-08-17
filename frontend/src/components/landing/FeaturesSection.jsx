@@ -73,6 +73,11 @@ const FEATURES = [
       />
     ),
   },
+  {
+    title: 'Smart settle-up suggestions',
+    desc: "Instead of everyone paying everyone back, Smart Bill Split works out the fewest payments needed to settle the whole group up — three people owing each other odd amounts can become one transfer instead of six.",
+    icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 4h16l-6 8v6l-4 2v-8L4 4Z" />,
+  },
 ];
 
 export default function FeaturesSection() {
@@ -91,8 +96,10 @@ export default function FeaturesSection() {
         <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {FEATURES.map((f, i) => {
             // Alternate a couple of icons into the brand's gold accent so the
-            // grid doesn't read as one flat wall of teal.
-            const gold = i === 2 || i === 5;
+            // grid doesn't read as one flat wall of teal - also picks out
+            // the two most technically-differentiated features (scanning,
+            // settle-up simplification) from the more expected ones.
+            const gold = i === 2 || i === 5 || i === 6;
             return (
               <div key={f.title} className="card card-hover p-6">
                 <span

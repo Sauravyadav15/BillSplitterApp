@@ -25,7 +25,7 @@ const FAQS = [
   },
   {
     q: 'Is my data secure?',
-    a: "Your account is protected by a password we never store in plain text, and your groups are only visible to the people you've added to them.",
+    a: "Your account is protected by a password we never store in plain text, and your groups are only visible to the people you've added to them. Receipt photos are processed by Google's OCR to read the items off them, then stored via Cloudinary.",
   },
 ];
 
