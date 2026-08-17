@@ -10,6 +10,19 @@
     <meta name="theme-color" content="#1E6F5C" />
     <meta name="description" content="Scan. Select. Split fairly. Smart Bill Split keeps every friend's balances and settlements in sync, in real time." />
     <title>Smart Bill Split</title>
+    <script>
+      // Applied before any CSS paints, so a stored dark-mode override
+      // doesn't flash light-then-dark on load - mirrors ThemeContext's own
+      // logic exactly (see frontend/src/context/ThemeContext.jsx), kept in
+      // sync manually since this has to run before React (or any module)
+      // is available to share the logic from.
+      (function () {
+        var stored = localStorage.getItem('billsplit_theme');
+        if (stored === 'light' || stored === 'dark') {
+          document.documentElement.setAttribute('data-theme', stored);
+        }
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

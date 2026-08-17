@@ -2,11 +2,28 @@
 
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import useHideOnScroll from '../hooks/useHideOnScroll';
 import UserAvatar from './UserAvatar';
 
+const SunIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3.5 w-3.5 sm:h-4 sm:w-4">
+    <circle cx="12" cy="12" r="4" />
+    <path
+      strokeLinecap="round"
+      d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"
+    />
+  </svg>
+);
+const MoonIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3.5 w-3.5 sm:h-4 sm:w-4">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" />
+  </svg>
+);
+
 export default function Navbar() {
   const { user, logout } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   const visible = useHideOnScroll();
 
   return (
@@ -39,6 +56,14 @@ export default function Navbar() {
           )}
 
           <div className="flex items-center gap-0.5 rounded-xl border border-border p-1 sm:gap-1">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+              className="btn btn-ghost !rounded-lg !p-1.5 sm:!p-2"
+            >
+              {isDark ? <SunIcon /> : <MoonIcon />}
+            </button>
             <Link to="/dashboard" className="btn btn-ghost !rounded-lg !px-2 !py-1 text-xs sm:!px-3 sm:!py-1.5">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3.5 w-3.5 sm:h-4 sm:w-4">
                 <path strokeLinecap="round" strokeLinejoin="round" d="m3 11 9-8 9 8M5 10v10h5v-6h4v6h5V10" />

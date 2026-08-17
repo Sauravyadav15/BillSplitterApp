@@ -2,6 +2,7 @@
 
 import { Link } from 'react-router-dom';
 import useHideOnScroll from '../../hooks/useHideOnScroll';
+import { useTheme } from '../../context/ThemeContext';
 
 const LINKS = [
   { href: '#how-it-works', label: 'How it works' },
@@ -9,8 +10,24 @@ const LINKS = [
   { href: '#faq', label: 'FAQ' },
 ];
 
+const SunIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+    <circle cx="12" cy="12" r="4" />
+    <path
+      strokeLinecap="round"
+      d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"
+    />
+  </svg>
+);
+const MoonIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" />
+  </svg>
+);
+
 export default function LandingNavbar() {
   const visible = useHideOnScroll();
+  const { isDark, toggleTheme } = useTheme();
 
   return (
     <nav
@@ -37,6 +54,14 @@ export default function LandingNavbar() {
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+            className="btn btn-ghost !p-1.5"
+          >
+            {isDark ? <SunIcon /> : <MoonIcon />}
+          </button>
           <Link to="/login" className="btn btn-ghost !px-3 !py-1.5 text-xs">
             Log in
           </Link>
