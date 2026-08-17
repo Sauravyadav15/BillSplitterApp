@@ -18,6 +18,7 @@ import AddMemberForm from '../components/AddMemberForm';
 import AddMembersModal from '../components/AddMembersModal';
 import BillList from '../components/BillList';
 import ActivityFeed from '../components/ActivityFeed';
+import SpendingByMemberChart from '../components/SpendingByMemberChart';
 import BalancesPanel from '../components/BalancesPanel';
 import RecordSettlementForm from '../components/RecordSettlementForm';
 import StatTile from '../components/StatTile';
@@ -246,6 +247,15 @@ export default function GroupPage() {
           )
         )}
       </div>
+
+      {/* Spending by member - a raw-activity view ("who's been fronting the
+          money") distinct from Balances' net-owed view above. */}
+      {billsState.data?.bills.length > 0 && (
+        <div className="reveal card mb-6 p-6" style={{ animationDelay: '195ms' }}>
+          <h2 className="mb-4">Spending by Member</h2>
+          <SpendingByMemberChart bills={billsState.data.bills} members={groupState.data?.members || []} />
+        </div>
+      )}
 
       {/* Recent activity - what's actually been happening, not just the
           current-state snapshot the Balances/Bills cards show. */}
