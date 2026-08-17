@@ -10,7 +10,11 @@
       }
       gtag('js', new Date());
 
-      gtag('config', 'G-3JCEXBMWRB');
+      // send_page_view: false - AnalyticsTracker.jsx (frontend/src/components)
+      // sends every page_view explicitly, including the first one, so the
+      // default automatic page_view this config call would otherwise send
+      // doesn't double-count the initial load alongside it.
+      gtag('config', 'G-3JCEXBMWRB', { send_page_view: false });
     </script>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />

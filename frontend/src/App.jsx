@@ -4,6 +4,7 @@ import { ToastProvider } from './context/ToastContext';
 import { ThemeProvider } from './context/ThemeContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import ToastContainer from './components/ToastContainer';
+import AnalyticsTracker from './components/AnalyticsTracker';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
@@ -19,6 +20,7 @@ function App() {
       <AuthProvider>
         <ToastProvider>
           <BrowserRouter>
+            <AnalyticsTracker />
             <Routes>
               <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<LoginPage />} />
