@@ -2,7 +2,9 @@
 
 import axios from 'axios';
 
-export const API_BASE_URL = 'http://localhost:5000';
+// Set via Vercel project env vars in production; falls back to the local
+// backend for `npm run dev`.
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -30,6 +32,10 @@ apiClient.interceptors.response.use(
 
 export function resolveImageUrl(path) {
   if (!path) return '';
+  // A Cloudinary-hosted image is already a full URL; only a legacy
+  // locally-stored path (from before receipt photos moved to Cloudinary)
+  // needs the backend prefix.
+  if (/^https?:\/\//.test(path)) return path;
   return `${API_BASE_URL}${path}`;
 }
 

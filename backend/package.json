@@ -12,8 +12,11 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@google-cloud/documentai": "^10.0.0",
+    "@google-cloud/vision": "^6.0.0",
     "axios": "^1.16.0",
     "bcrypt": "^6.0.0",
+    "cloudinary": "^2.10.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",

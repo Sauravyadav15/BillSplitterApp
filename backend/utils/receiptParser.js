@@ -24,6 +24,19 @@ const PRICE_AT_END = /(-)?\$?\s*(\d+\.\d{2})[^\d]{0,20}$/;
 // substring, so matching anywhere in the line is still safe.
 const QUANTITY_LINE = /(\(?\d+\)?\s*[x@])|(\bkg\s*@)|(\/\s*kg)|(\blb\s*@)|(\/\s*lb)|(\d+[.,]\d+\s*kg\b)|(\d+[.,]\d+\s*lb\b)/i;
 
+// A per-unit-price confirmation line for a "sold by count" item (e.g.
+// "3EA @ $0.99/EA") - the item itself already got its own name+price on the
+// preceding line ("AVOCADOS EACH HASS 40 CT. 2.97T"); this line is a
+// redundant footnote, not a second item. Distinct from QUANTITY_LINE:
+// there, the quantity clause and the real price share one reconstructed
+// line ("leading" text + clause + final price). Here, the whole line *is*
+// just the clause (count optional - OCR sometimes drops the leading digit
+// entirely, leaving bare "EA"), with nothing else to salvage as a name -
+// checked against the whole namePart, not just a substring within it, so
+// it can force the fallback-to-previous-name path below even though "EA"
+// alone would otherwise look like a valid (if short) item name.
+const BARE_EACH_MARKER = /^\(?\d*\)?\s*ea\s*@?$/i;
+
 const NOISE_KEYWORDS = [
   'subtotal', 'total', 'saving', 'saved', 'credit', 'store #', 'hst', 'gst',
   'e&oe', 'trans.', 'account', 'card', 'auth', 'visa', 'debit', 'thank you',
@@ -42,7 +55,24 @@ const NOISE_KEYWORDS = [
 // item). Treating these as a full-line noise keyword would silently drop
 // that item along with the label, so instead only the leading label itself
 // is stripped, and whatever remains on the line is still parsed normally.
-const CATEGORY_HEADER_PREFIXES = ['grocery', 'produce', 'meat', 'dairy', 'bakery', 'frozen', 'deli'];
+// Longer/compound labels must precede any prefix they contain (e.g. "frozen
+// food" before "frozen") - stripCategoryHeaderPrefix returns on the first
+// match, and a category header that happens to be two real words (like a
+// store's "FROZEN FOOD" section) would otherwise only have "frozen "
+// stripped, leaving "FOOD" behind as if it were a real leftover item
+// fragment - which, on a provider that frequently splits an item's name and
+// price onto separate lines (see receiptOcrDocumentAI.js), can silently
+// overwrite a pending real item name sitting in `lastNonPriceLine`.
+const CATEGORY_HEADER_PREFIXES = [
+  'frozen food',
+  'grocery',
+  'produce',
+  'meat',
+  'dairy',
+  'bakery',
+  'frozen',
+  'deli',
+];
 
 function stripCategoryHeaderPrefix(line) {
   for (const keyword of CATEGORY_HEADER_PREFIXES) {
@@ -119,6 +149,15 @@ const TIP_LINE = /^(tip|gratuity)\s*:?$/i;
 // deliberately isn't included here - it's handled on its own path (see
 // TIP_LINE / NOISE_KEYWORDS) since it's the one charge type that can be
 // personally covered by one member instead of split.
+// Deliberately NOT "tax\d*" here: widening this to match a numbered
+// tax-category label like "TAX1" (OCR's crop of "State Tax 1") was tried
+// and reverted - on a real rotated receipt photo, OCR paired that "TAX1"
+// label with an adjacent line's value instead of its own (the reconstructed
+// text read "TAX1 $41.30" when $41.30 was actually the subtotal, and the
+// real $1.03 tax landed on a different, unlabeled line). Matching "TAX1"
+// there would have confidently created a fake $41.30 tax charge on top of
+// the bill - worse than not detecting tax at all. Revisit only alongside a
+// fix for that label/value pairing, not as a regex change alone.
 const CHARGE_LABEL_PATTERN = /\b(tax|hst|gst|pst|vat|surcharge|svc\s*chg|service\s*charge|fee)\b/i;
 
 // Best-effort: finds a labeled amount line (e.g. "SUBTOTAL 64.26"), if OCR
@@ -202,7 +241,7 @@ function parseReceiptLines(rawText) {
 
     let name = namePart;
     let unitNote = null;
-    if (!name || !hasEnoughLetters(namePart)) {
+    if (!name || !hasEnoughLetters(namePart) || BARE_EACH_MARKER.test(namePart)) {
       name = lastNonPriceLine;
     } else {
       // A quantity clause (e.g. "2 @ $0.59" or "0.075 kg @ $6.57/kg") can end

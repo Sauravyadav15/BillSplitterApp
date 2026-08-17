@@ -1,0 +1,44 @@
+# Render Blueprint for the backend - see https://render.com/docs/blueprint-spec
+# Deploy via Render's "New > Blueprint" flow, pointed at this repo. Values
+# marked `sync: false` are secrets/environment-specific - Render prompts for
+# them once during setup and stores them only in its own dashboard, never in
+# this file. The frontend is NOT deployed here; it's a separate Vercel
+# project (see frontend/vercel.json and docs/decisions/0008-hybrid-deployment.md).
+#
+# One manual step this file can't express: Document AI needs a GCP service
+# account key file on disk (GOOGLE_APPLICATION_CREDENTIALS points at a path,
+# not a raw value - same env var name local dev already uses). Add it under
+# the service's "Secret Files" tab in the Render dashboard (e.g. mounted at
+# /etc/secrets/gcp-key.json), then set GOOGLE_APPLICATION_CREDENTIALS to that
+# same path below.
+services:
+  - type: web
+    name: billsplit-backend
+    runtime: node
+    rootDir: backend
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
+      - key: OCR_PROVIDER
+        value: documentai
+      - key: DOCAI_PROJECT_ID
+        sync: false
+      - key: DOCAI_PROCESSOR_ID
+        sync: false
+      - key: DOCAI_LOCATION
+        value: us
+      - key: GOOGLE_APPLICATION_CREDENTIALS
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false

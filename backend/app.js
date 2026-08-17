@@ -20,7 +20,12 @@ const authMiddleware = require('./middleware/authMiddleware');
 
 const app = express();// express app created
 
-app.use(cors());
+// CORS_ORIGIN is a comma-separated allow-list (e.g. the deployed frontend +
+// custom domain) - unset in local dev, where the wide-open default is fine.
+// Auth is a bearer token in the Authorization header, not a cookie, so this
+// is about limiting which sites can read API responses, not CSRF.
+const corsOrigins = process.env.CORS_ORIGIN?.split(',').map((origin) => origin.trim()).filter(Boolean);
+app.use(cors(corsOrigins?.length ? { origin: corsOrigins } : undefined));
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // Routes

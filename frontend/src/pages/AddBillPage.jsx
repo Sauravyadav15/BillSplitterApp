@@ -11,6 +11,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorBanner from '../components/ErrorBanner';
 import ReceiptItemsTable from '../components/ReceiptItemsTable';
 import PurchaseDateModal from '../components/PurchaseDateModal';
+import ImageLightbox from '../components/ImageLightbox';
 
 let localIdCounter = 0;
 function nextLocalId() {
@@ -86,6 +87,11 @@ export default function AddBillPage() {
   const [receiptSubtotal, setReceiptSubtotal] = useState(null);
   const [receiptTotal, setReceiptTotal] = useState(null);
   const [receiptTip, setReceiptTip] = useState(null);
+
+  // Which cropped photo (by previewUrl) is open in the full-screen preview -
+  // null when closed. Lets the user zoom into the receipt to check it
+  // against the scan when the mismatch banners below fire.
+  const [previewUrl, setPreviewUrl] = useState(null);
 
   // Bill-level charges that aren't purchasable items - tax, a venue fee, a
   // surcharge (see receiptParser.js's CHARGE_LABEL_PATTERN, which is what
@@ -409,11 +415,18 @@ export default function AddBillPage() {
               <div className="flex flex-wrap gap-3">
                 {imageParts.map((part, index) => (
                   <div key={part.localId} className="flex flex-col items-center gap-1">
-                    <img
-                      className="block h-[130px] w-[130px] rounded-xl border border-border object-cover shadow-[var(--shadow-md)]"
-                      src={part.previewUrl}
-                      alt={`Receipt part ${index + 1}`}
-                    />
+                    <button
+                      type="button"
+                      onClick={() => setPreviewUrl(part.previewUrl)}
+                      className="block cursor-zoom-in"
+                      aria-label={`Preview receipt part ${index + 1}`}
+                    >
+                      <img
+                        className="block h-[130px] w-[130px] rounded-xl border border-border object-cover shadow-[var(--shadow-md)]"
+                        src={part.previewUrl}
+                        alt={`Receipt part ${index + 1}`}
+                      />
+                    </button>
                     <span className="text-xs font-semibold text-muted">Part {index + 1}</span>
                   </div>
                 ))}
@@ -602,6 +615,8 @@ export default function AddBillPage() {
           </button>
         </div>
       </form>
+
+      {previewUrl && <ImageLightbox src={previewUrl} alt="Receipt" onClose={() => setPreviewUrl(null)} />}
     </div>
   );
 }

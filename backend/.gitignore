@@ -1,6 +1,7 @@
 node_modules
 .env
 .env.test
+secrets/
 uploads/*
 !uploads/.gitkeep
 *.traineddata

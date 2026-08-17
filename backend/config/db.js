@@ -18,8 +18,13 @@ types.setTypeParser(1082, (val) => val);
 const connectionString =
   process.env.NODE_ENV === 'test' ? process.env.TEST_DATABASE_URL : process.env.DATABASE_URL;
 
+// Hosted Postgres (Neon, Supabase, etc.) requires SSL; a local dev/test
+// instance on localhost neither needs nor (in most default setups) accepts
+// it, so this switches on the connection string itself rather than adding a
+// separate env var to keep in sync.
 const pool = new Pool({
   connectionString,
+  ssl: connectionString && !/localhost|127\.0\.0\.1/.test(connectionString) ? { rejectUnauthorized: false } : false,
 });
 
 // Test the connection on startup

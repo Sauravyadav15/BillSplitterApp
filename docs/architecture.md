@@ -4,7 +4,7 @@ This is the fuller, human-readable sibling of the architecture summary in [CLAUD
 
 ## Two independent apps, one repo
 
-`backend/` (Express 5 + PostgreSQL via `pg`, CommonJS) and `frontend/` (React 19 + Vite) are not a shared workspace — no root `package.json`, no shared config. They're connected only by the frontend calling the backend's REST API (`frontend/src/api/client.js` points at `http://localhost:5000` in dev).
+`backend/` (Express 5 + PostgreSQL via `pg`, CommonJS) and `frontend/` (React 19 + Vite) are not a shared workspace — no root `package.json`, no shared config. They're connected only by the frontend calling the backend's REST API (`frontend/src/api/client.js`'s `API_BASE_URL`, `http://localhost:5000` by default, overridable via `VITE_API_BASE_URL` — set in production, since the two apps deploy independently, see [ADR 0008](decisions/0008-hybrid-deployment.md)).
 
 ## Backend request flow
 
@@ -18,7 +18,7 @@ routes/*.js → middleware → controllers/*.js → config/db.js (shared pg Pool
 - **Group-scoped authorization**: `middleware/requireGroupMembership.js` checks `req.params.groupId` against `group_members` for the current `req.user.userId`, used on every bill/settlement/balance route. `groupController.js` does the equivalent check inline (it predates the shared middleware, see [`getGroupById`](../backend/controllers/groupController.js)). Any new group-scoped endpoint should use the `requireGroupMembership` middleware rather than re-inlining the check.
 - **Validation**: `express-validator` (`param()`, `body()`) runs as route-level middleware arrays, with `middleware/handleValidationErrors.js` turning collected errors into a `400` response. `middleware/validateGroup.js` exists but is empty/unused.
 - **Multi-table writes** (`createGroup`, `createBill`) use a checked-out `pool.connect()` client with explicit `BEGIN`/`COMMIT`/`ROLLBACK`, not the shared pool directly — follow this pattern for any new multi-table write.
-- **File uploads**: `middleware/upload.js` wraps `multer` (disk storage under `backend/uploads/`, 5MB limit, image-mimetype filter only). `uploadReceiptImage` (single file, used by `parseReceipt`) vs. `uploadReceiptImages` (up to 10, used by `createBill` — a long receipt is often scanned as several photos, see `AddBillPage`'s "Scan another part").
+- **File uploads**: `middleware/upload.js` wraps `multer` (disk storage under `backend/uploads/` as a scratch landing spot, 5MB limit, image-mimetype filter only). `uploadReceiptImage` (single file, used by `parseReceipt`) vs. `uploadReceiptImages` (up to 10, used by `createBill` — a long receipt is often scanned as several photos, see `AddBillPage`'s "Scan another part"). `parseReceipt`'s upload is genuinely scratch - read once for OCR, deleted before the response goes out - but `createBill`'s images need to persist with the bill, so those are immediately re-uploaded to Cloudinary (`utils/cloudinary.js`) and the local copy discarded; `bills.image_url`/`bill_images.image_url` store Cloudinary's URL, not a local path. See [ADR 0008](decisions/0008-hybrid-deployment.md) for why local disk isn't good enough on its own.
 
 ## Data model
 
@@ -48,15 +48,20 @@ Defined in `backend/config/schema.sql`, all tables keyed by `uuid_generate_v4()`
 ## Receipt OCR pipeline
 
 ```
-photo upload → PaddleOCR worker (Python) → ocrLineBuilder.js → receiptParser.js → candidate items → (user reviews/edits) → createBill
+photo upload → OCR provider (PaddleOCR worker, Vision API, or Document AI) → text parser → candidate items → (user reviews/edits) → createBill
 ```
 
-- `backend/utils/receiptOcr.js` spawns and keeps alive a long-lived PaddleOCR worker process (`backend/paddle_ocr/ocr_server.py`) rather than paying the ~20-30s model-load cost per request. `index.js` warms it up at server startup.
-- `utils/ocrLineBuilder.js` reconstructs reading-order lines from raw OCR text boxes using pixel position (grouping by y-center with a per-line adaptive gap threshold), not the OCR engine's own output order — this is what keeps an item name and its price on the same line.
-- `utils/receiptParser.js` turns those lines into candidate `{name, price}` items using layout heuristics (price-at-end regex, quantity/weight-line detection, noise-keyword filtering, embedded-savings-phrase stripping, category-header-prefix stripping).
+- `backend/utils/ocrProvider.js` is the single switch point between three interchangeable OCR backends, all exporting the same `{ extractTextFromImage, warmUp }` shape — `billController.js` and `index.js` require this file, not any backend directly, so switching providers is an `OCR_PROVIDER` env change, not a code change:
+  - `utils/receiptOcr.js` (default, `OCR_PROVIDER` unset or `paddle`): spawns and keeps alive a long-lived PaddleOCR worker process (`backend/paddle_ocr/ocr_server.py`) rather than paying the ~20-30s model-load cost per request. Reconstructs reading-order lines from raw OCR text boxes itself, via `utils/ocrLineBuilder.js`, using pixel position (grouping by y-center with a per-line adaptive gap threshold) rather than the OCR engine's own output order — this is what keeps an item name and its price on the same line.
+  - `utils/receiptOcrGoogle.js` (`OCR_PROVIDER=google`): calls the Google Cloud Vision API (`DOCUMENT_TEXT_DETECTION`) per request instead. No local model/process — Google's response already comes back in reading order, so this path skips `ocrLineBuilder.js`. See [ADR 0005](decisions/0005-google-vision-ocr-option.md) for the cost/architecture tradeoff against self-hosting.
+  - `utils/receiptOcrDocumentAI.js` (`OCR_PROVIDER=documentai`): calls a Google Cloud Document AI **Document OCR** processor per request. Same reading-order-text contract as the Vision path (skips `ocrLineBuilder.js` too). Deliberately uses the plain OCR processor type, not Document AI's "Expense Parser" — Expense Parser's automatic price/line-item entity linking was tried first and inconsistently dropped item prices on real receipts; see [ADR 0006](decisions/0006-document-ai-ocr-option.md).
+  - `index.js` calls `warmUp()` on whichever provider is active at server startup; it's a real ~20-30s model load for PaddleOCR and a no-op for the two hosted APIs (stateless HTTP, nothing to preload).
+- `backend/utils/parserProvider.js` is a second, parallel switch point picking which text parser turns the OCR provider's reading-order text into candidate `{name, price}` items, kept in sync with `OCR_PROVIDER`:
+  - `utils/receiptParser.js` (paddle/google): layout heuristics (price-at-end regex, quantity/weight-line detection, noise-keyword filtering, embedded-savings-phrase stripping, category-header-prefix stripping), built assuming an item's name and price are almost always on the same reading-order line — true for both PaddleOCR and Vision.
+  - `utils/receiptParserDocumentAI.js` (documentai): a separate, independently-tuned parser — Document AI splits name and price onto separate lines far more often, which broke several of `receiptParser.js`'s assumptions on real receipts (a per-item code line clobbering the real name, a promo line read as a duplicate item, a per-unit rate line mistaken for the final price). See [ADR 0006](decisions/0006-document-ai-ocr-option.md) for what specifically goes wrong and how this parser handles it.
 - `POST /groups/:groupId/bills/parse-receipt` is **preview-only** — it never writes to the database. The frontend (`AddBillPage`) is expected to let the user review/edit the suggested items, then call `POST /groups/:groupId/bills` (`createBill`) with the final, user-confirmed item list.
 
-See [ADR 0003](decisions/0003-paddleocr-receipt-pipeline.md) for why this is self-hosted rather than a hosted OCR API.
+See [ADR 0003](decisions/0003-paddleocr-receipt-pipeline.md) for why PaddleOCR was chosen self-hosted originally, [ADR 0005](decisions/0005-google-vision-ocr-option.md) for why Vision API was added as a selectable alternative, and [ADR 0006](decisions/0006-document-ai-ocr-option.md) for why Document AI was added as a third.
 
 ## Frontend structure
 

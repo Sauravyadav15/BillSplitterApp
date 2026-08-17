@@ -2,12 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { getBill } from '../api/bills';
 import { resolveImageUrl } from '../api/client';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorBanner from '../components/ErrorBanner';
 import StatTile from '../components/StatTile';
 import ContributorSplitBar from '../components/ContributorSplitBar';
+import ImageLightbox from '../components/ImageLightbox';
+import UserAvatar from '../components/UserAvatar';
 
 const ReceiptIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
@@ -27,8 +30,10 @@ const UsersIcon = () => (
 
 export default function BillDetailPage() {
   const { groupId, billId } = useParams();
+  const { user } = useAuth();
 
   const [state, setState] = useState({ data: null, loading: true, error: null });
+  const [previewSrc, setPreviewSrc] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -53,6 +58,31 @@ export default function BillDetailPage() {
   const extraCharges = state.data?.extra_charges || [];
   const extraChargesTotal = extraCharges.reduce((sum, c) => sum + Number(c.amount), 0);
   const tipAmount = Number(bill?.tip_amount || 0);
+
+  // Each contributor's total responsibility for this bill - their summed
+  // item shares plus their equal share of extra charges/tip - which is
+  // exactly what they owe back to whoever fronted it (bill.added_by).
+  // Same "fronted total, owed back per-contributor" semantics as
+  // balanceController.js's getGroupBalances, just scoped to this one bill
+  // instead of netted across the whole group's activity.
+  const totalsByUser = new Map();
+  for (const item of state.data?.items || []) {
+    for (const c of item.contributors) {
+      const entry = totalsByUser.get(c.user_id) || { user_id: c.user_id, name: c.name, avatar: c.avatar, total: 0 };
+      entry.total += Number(c.share_amount);
+      totalsByUser.set(c.user_id, entry);
+    }
+  }
+  for (const c of state.data?.charges || []) {
+    const entry = totalsByUser.get(c.user_id) || { user_id: c.user_id, name: c.name, avatar: c.avatar, total: 0 };
+    entry.total += Number(c.amount);
+    totalsByUser.set(c.user_id, entry);
+  }
+  const owedToPayer = Array.from(totalsByUser.values())
+    .filter((u) => u.user_id !== bill?.added_by)
+    .sort((a, b) => b.total - a.total);
+  const totalOwedBack = owedToPayer.reduce((sum, u) => sum + u.total, 0);
+  const payerIsMe = bill?.added_by === user?.id;
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-10 sm:px-10">
@@ -103,11 +133,18 @@ export default function BillDetailPage() {
                 {(state.data.images?.length > 0 ? state.data.images : [{ id: 'fallback', image_url: state.data.bill.image_url }]).map(
                   (image, index, all) => (
                     <div key={image.id} className={index > 0 ? 'mt-3' : undefined}>
-                      <img
-                        className="block w-full rounded-xl border border-border shadow-[var(--shadow-md)]"
-                        src={resolveImageUrl(image.image_url)}
-                        alt={all.length > 1 ? `Receipt part ${index + 1}` : 'Receipt'}
-                      />
+                      <button
+                        type="button"
+                        onClick={() => setPreviewSrc(resolveImageUrl(image.image_url))}
+                        className="block w-full cursor-zoom-in"
+                        aria-label={`Preview ${all.length > 1 ? `receipt part ${index + 1}` : 'receipt'}`}
+                      >
+                        <img
+                          className="block w-full rounded-xl border border-border shadow-[var(--shadow-md)]"
+                          src={resolveImageUrl(image.image_url)}
+                          alt={all.length > 1 ? `Receipt part ${index + 1}` : 'Receipt'}
+                        />
+                      </button>
                       {all.length > 1 && (
                         <p className="mt-1 text-center text-xs font-semibold text-muted">Part {index + 1}</p>
                       )}
@@ -149,6 +186,59 @@ export default function BillDetailPage() {
                     </p>
                   </div>
                 </div>
+              </div>
+
+              {/* Who owes what on this specific bill - fills the empty space
+                  left under the receipt once the item list on the right runs
+                  taller, and answers the question this page doesn't
+                  otherwise: everyone's total (items + their share of
+                  charges/tip) owed back to whoever fronted it. */}
+              <div className="card mt-6 p-6">
+                <div className="mb-4 flex items-center justify-between">
+                  <h2>Who Owes What</h2>
+                  <span className="text-xs font-semibold text-muted">
+                    {payerIsMe ? 'You paid this one' : `Paid by ${bill.added_by_name}`}
+                  </span>
+                </div>
+
+                {owedToPayer.length === 0 ? (
+                  <p className="text-sm text-muted">
+                    {payerIsMe ? 'You' : bill.added_by_name} covered this one solo - nobody else owes anything on
+                    this bill.
+                  </p>
+                ) : (
+                  <>
+                    <ul className="flex flex-col gap-2">
+                      {owedToPayer.map((u) => {
+                        const isMe = u.user_id === user?.id;
+                        return (
+                          <li
+                            key={u.user_id}
+                            className={`flex items-center justify-between gap-3 rounded-lg px-3.5 py-2.5 text-sm ${
+                              isMe ? 'bg-accent-soft' : 'bg-surface-2'
+                            }`}
+                          >
+                            <div className="flex min-w-0 items-center gap-2.5">
+                              <UserAvatar user={u} className="h-8 w-8 shrink-0 text-xs" />
+                              <span className="truncate text-ink">
+                                <span className="font-medium">{isMe ? 'You' : u.name}</span>
+                                <span className="text-muted">
+                                  {' '}
+                                  {isMe ? 'owe' : 'owes'} {payerIsMe ? 'you' : bill.added_by_name}
+                                </span>
+                              </span>
+                            </div>
+                            <strong className="shrink-0 text-accent">${u.total.toFixed(2)}</strong>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                    <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
+                      <span className="text-xs font-bold uppercase tracking-wide text-muted">Total owed back</span>
+                      <span className="font-heading text-lg font-semibold text-ink">${totalOwedBack.toFixed(2)}</span>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
@@ -238,6 +328,8 @@ export default function BillDetailPage() {
           </div>
         </>
       )}
+
+      {previewSrc && <ImageLightbox src={previewSrc} alt="Receipt" onClose={() => setPreviewSrc(null)} />}
     </div>
   );
 }

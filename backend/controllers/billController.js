@@ -2,9 +2,14 @@
 
 const fs = require('fs');
 const pool = require('../config/db');
+const cloudinary = require('../utils/cloudinary');
 const { splitItemPrice } = require('../utils/splitCalculator');
-const { extractTextFromImage } = require('../utils/receiptOcr');
-const { parseReceiptLines, extractSubtotal, extractTotal, extractTip } = require('../utils/receiptParser');
+// Full provider modules (not destructured) so parseReceipt below can
+// feature-detect the coordinate-aware entry points (extractDocumentFromImage
+// / parseReceiptFromDocument) that only the documentai provider currently
+// exposes - see ADR 0007. paddle/google keep working unchanged either way.
+const ocrProvider = require('../utils/ocrProvider');
+const parserProvider = require('../utils/parserProvider');
 
 // POST /groups/:groupId/bills - create a bill with items + per-item contributors
 const createBill = async (req, res) => {
@@ -131,10 +136,28 @@ const createBill = async (req, res) => {
       return res.status(400).json({ error: 'tip_paid_by must be a member of this group' });
     }
 
-    // 5. Compute shares + total in memory before touching the DB. The first
+    // 5. Upload each scanned photo to Cloudinary - the local copies multer
+    // just wrote are scratch from here on. A bill's images need to survive
+    // for as long as the bill does, but the app's own disk doesn't: it's
+    // wiped on every redeploy/restart on the hosting this runs on (Render's
+    // filesystem is ephemeral, same story on most PaaS/serverless targets),
+    // so anything meant to persist has to live somewhere that isn't it.
+    let imageUrls;
+    try {
+      const uploads = await Promise.all(
+        req.files.map((file) => cloudinary.uploader.upload(file.path, { folder: 'billsplit-receipts' }))
+      );
+      imageUrls = uploads.map((result) => result.secure_url);
+    } catch (uploadErr) {
+      unlinkAllFiles();
+      console.error('Receipt image upload error:', uploadErr);
+      return res.status(502).json({ error: 'Failed to upload receipt image(s). Please try again.' });
+    }
+    unlinkAllFiles();
+
+    // 6. Compute shares + total in memory before touching the DB. The first
     // uploaded image is the bill's cover photo (list/gallery thumbnails);
     // every image gets its own bill_images row for the detail view.
-    const imageUrls = req.files.map((file) => `/uploads/${file.filename}`);
     const imageUrl = imageUrls[0];
     let itemsSubtotalCents = 0;
     const itemsWithShares = items.map((item) => {
@@ -157,7 +180,7 @@ const createBill = async (req, res) => {
     const sharedExtraAmount = extraChargesCents / 100 + sharedTipAmount;
     const totalAmount = (itemsSubtotalCents / 100 + sharedExtraAmount).toFixed(2);
 
-    // 6. Insert bill, items, and contributor shares in one transaction
+    // 7. Insert bill, items, and contributor shares in one transaction
     await client.query('BEGIN');
 
     const billResult = await client.query(
@@ -227,7 +250,7 @@ const createBill = async (req, res) => {
 
     await client.query('COMMIT');
 
-    // 7. Respond
+    // 8. Respond
     res.status(201).json({
       message: 'Bill created successfully',
       bill,
@@ -291,9 +314,15 @@ const getBillById = async (req, res) => {
   try {
     const { groupId, billId } = req.params;
 
-    // 1. Fetch the bill, scoped to this group
+    // 1. Fetch the bill, scoped to this group. Joined to the payer's own
+    // name/avatar (not just added_by's id) so the frontend's per-bill "who
+    // owes what" breakdown can label/avatar the person everyone else owes,
+    // the same way getBillsForGroup already does for its list view.
     const billResult = await pool.query(
-      'SELECT * FROM bills WHERE id = $1 AND group_id = $2',
+      `SELECT b.*, u.name AS added_by_name, u.avatar AS added_by_avatar
+       FROM bills b
+       JOIN users u ON u.id = b.added_by
+       WHERE b.id = $1 AND b.group_id = $2`,
       [billId, groupId]
     );
 
@@ -331,7 +360,7 @@ const getBillById = async (req, res) => {
 
     if (itemIds.length > 0) {
       const contributorsResult = await pool.query(
-        `SELECT ic.item_id, ic.user_id, ic.share_amount, u.name, u.email
+        `SELECT ic.item_id, ic.user_id, ic.share_amount, u.name, u.email, u.avatar
          FROM item_contributors ic
          JOIN users u ON u.id = ic.user_id
          WHERE ic.item_id = ANY($1::uuid[])`,
@@ -344,6 +373,7 @@ const getBillById = async (req, res) => {
           user_id: row.user_id,
           name: row.name,
           email: row.email,
+          avatar: row.avatar,
           share_amount: row.share_amount,
         });
         map.set(row.item_id, list);
@@ -371,7 +401,7 @@ const getBillById = async (req, res) => {
     // shared tip (see bill_charges in schema.sql) - empty when the bill had
     // neither.
     const chargesResult = await pool.query(
-      `SELECT bc.user_id, bc.amount, u.name, u.email
+      `SELECT bc.user_id, bc.amount, u.name, u.email, u.avatar
        FROM bill_charges bc
        JOIN users u ON u.id = bc.user_id
        WHERE bc.bill_id = $1`,
@@ -407,27 +437,63 @@ const parseReceipt = async (req, res) => {
     // worker time to respawn, see receiptOcr.js) recovers most of the time;
     // if it still fails, say so plainly instead of a bare "Server error" so
     // the user knows to retry later or just add items manually.
+    //
+    // Only the documentai provider currently exposes coordinate data
+    // (extractDocumentFromImage / parseReceiptFromDocument - see ADR 0007);
+    // paddle/google still only ever return plain text, so this branches on
+    // whichever entry points the active provider actually has rather than
+    // checking OCR_PROVIDER directly.
+    const usesCoordinates =
+      typeof ocrProvider.extractDocumentFromImage === 'function' &&
+      typeof parserProvider.parseReceiptFromDocument === 'function';
+
     let rawText;
-    try {
-      rawText = await extractTextFromImage(req.file.path);
-    } catch (firstErr) {
-      console.error('Parse receipt error (attempt 1, retrying):', firstErr);
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      rawText = await extractTextFromImage(req.file.path);
+    let parsed;
+    if (usesCoordinates) {
+      let document;
+      try {
+        document = await ocrProvider.extractDocumentFromImage(req.file.path);
+      } catch (firstErr) {
+        console.error('Parse receipt error (attempt 1, retrying):', firstErr);
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        document = await ocrProvider.extractDocumentFromImage(req.file.path);
+      }
+      rawText = (document && document.text) || '';
+      parsed = parserProvider.parseReceiptFromDocument(document);
+    } else {
+      try {
+        rawText = await ocrProvider.extractTextFromImage(req.file.path);
+      } catch (firstErr) {
+        console.error('Parse receipt error (attempt 1, retrying):', firstErr);
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        rawText = await ocrProvider.extractTextFromImage(req.file.path);
+      }
+      const { items, charges } = parserProvider.parseReceiptLines(rawText);
+      parsed = {
+        items,
+        charges,
+        subtotal: parserProvider.extractSubtotal(rawText),
+        total: parserProvider.extractTotal(rawText),
+        tip: parserProvider.extractTip(rawText),
+        needsReview: false,
+      };
     }
 
-    const { items, charges } = parseReceiptLines(rawText);
-    const receiptSubtotal = extractSubtotal(rawText);
-    const receiptTotal = extractTotal(rawText);
-    const receiptTip = extractTip(rawText);
-
     res.status(200).json({
-      items,
-      extra_charges: charges,
+      items: parsed.items,
+      extra_charges: parsed.charges,
       raw_text: rawText,
-      receipt_subtotal: receiptSubtotal,
-      receipt_total: receiptTotal,
-      receipt_tip: receiptTip,
+      receipt_subtotal: parsed.subtotal,
+      receipt_total: parsed.total,
+      receipt_tip: parsed.tip,
+      // Set only by the coordinate path (ADR 0007) when neither it nor the
+      // text-only fallback could arithmetically verify the result against
+      // itself - never fabricated, so false elsewhere just means "no
+      // reason to doubt this," not "confirmed correct." The frontend's own
+      // subtotal/total mismatch banners (AddBillPage.jsx) already surface
+      // the same underlying signal today; this rides along in the response
+      // for now rather than duplicating that UI.
+      needs_review: !!parsed.needsReview,
     });
   } catch (err) {
     console.error('Parse receipt error:', err);
