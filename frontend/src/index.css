@@ -249,6 +249,31 @@ body {
   display: flex;
   flex-direction: column;
 }
+/* Every page's top-level element (and Navbar's <nav>) is a direct flex-item
+   child of #root, and every page uses the same `mx-auto max-w-*` pattern to
+   center + cap its own width - which works perfectly as a normal block
+   child, but breaks specifically because #root is a flex container: per the
+   flexbox spec, an item with an auto cross-axis margin (mx-auto sets
+   margin-left/right: auto) skips stretch-to-fill sizing entirely and falls
+   back to shrink-to-content width instead. With unbreakable content deep
+   inside (a long group/item name, a long email, ...) that content width can
+   exceed the viewport, and nothing about truncate/min-w-0 used correctly
+   *inside* the page prevents it, because the page's own outermost element
+   was never actually constrained to the available width in the first
+   place. An explicit width here restores normal sizing (100%, still capped
+   by each page's own max-w-*) regardless of that auto-margin quirk - one
+   rule fixes it for every current and future page, instead of patching
+   each page's own wrapper div individually.
+   Confirmed via a real repro: a 22-character group name ("Summer 2026
+   Groceries") at a 360px-wide viewport (a common real Android CSS width,
+   narrower than any width manually tested during development) forced the
+   entire page ~127px wider than the screen - min-width: 0 alone (tried
+   first) did not fix it, since the problem was never a min-width:auto
+   shrink limit, it was the item never being told to fill 100% at all. */
+#root > * {
+  width: 100%;
+  min-width: 0;
+}
 
 /* Lets a section (landing page hero/CTA bands) escape #root's max-width
    and bleed edge-to-edge, while its own content stays constrained via

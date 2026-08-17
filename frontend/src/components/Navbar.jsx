@@ -32,16 +32,21 @@ export default function Navbar() {
       style={{ transform: visible ? 'translateY(0)' : 'translateY(-100%)' }}
     >
       <div className="mx-auto flex max-w-[1180px] items-center justify-between gap-2 px-4 py-3 sm:gap-4 sm:px-6 sm:py-4">
-        {/* Scales down with whitespace-nowrap below sm instead of hiding -
-            shrinking the icon and the Home/Logout pill alongside it is
-            enough to keep it on one line without needing to drop the name
-            entirely on a phone screen. */}
+        {/* Scales down instead of hiding on mobile - shrinking the icon and
+            the Home/Logout pill alongside it keeps it on one line on most
+            phone widths without dropping the name entirely. min-w-0 +
+            truncate on the text (rather than shrink-0 + whitespace-nowrap
+            on the whole link) is the difference between an ellipsis and a
+            real horizontal-scroll bug on a narrower device or a longer
+            display name next to it - the link can now actually shrink
+            instead of forcing the whole page wider when there truly isn't
+            room for both sides. */}
         <Link
           to="/dashboard"
-          className="flex shrink-0 items-center gap-1.5 whitespace-nowrap font-heading text-base font-semibold sm:gap-2.5 sm:text-xl"
+          className="flex min-w-0 items-center gap-1.5 font-heading text-base font-semibold sm:gap-2.5 sm:text-xl"
         >
           <img src="/icon-64.png" alt="Smart Bill Split" className="h-7 w-7 shrink-0 rounded-lg sm:h-8 sm:w-8" />
-          <span className="text-gradient">Smart Bill Split</span>
+          <span className="truncate text-gradient">Smart Bill Split</span>
         </Link>
 
         <div className="flex shrink-0 items-center gap-2 sm:gap-4">

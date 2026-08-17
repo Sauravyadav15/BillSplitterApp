@@ -35,10 +35,15 @@ export default function LandingNavbar() {
       style={{ transform: visible ? 'translateY(0)' : 'translateY(-100%)' }}
     >
       <div className="mx-auto flex max-w-[1180px] items-center justify-between px-6 py-3">
-        <Link to="/" className="flex shrink-0 items-center gap-2">
-          <img src="/icon-64.png" alt="" className="h-7 w-7 rounded-lg sm:h-10 sm:w-10 sm:rounded-xl" />
-          <span className="flex flex-col leading-tight">
-            <span className="font-heading text-sm font-semibold text-gradient sm:text-lg">Smart Bill Split</span>
+        {/* min-w-0 + truncate on the title (not shrink-0 on the whole link)
+            so a narrow phone width degrades to an ellipsis instead of
+            forcing the row - and the whole page - wider than the
+            viewport. See Navbar.jsx's identical fix for the authenticated
+            pages' navbar for the full reasoning. */}
+        <Link to="/" className="flex min-w-0 items-center gap-2">
+          <img src="/icon-64.png" alt="" className="h-7 w-7 shrink-0 rounded-lg sm:h-10 sm:w-10 sm:rounded-xl" />
+          <span className="flex min-w-0 flex-col leading-tight">
+            <span className="truncate font-heading text-sm font-semibold text-gradient sm:text-lg">Smart Bill Split</span>
             <span className="hidden font-mono text-[10px] font-normal uppercase tracking-[0.12em] text-muted sm:block">
               Scan &middot; Select &middot; Split fairly
             </span>
