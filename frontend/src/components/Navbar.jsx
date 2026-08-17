@@ -16,8 +16,13 @@ export default function Navbar() {
     >
       <div className="mx-auto flex max-w-[1180px] items-center justify-between px-6 py-4">
         <Link to="/dashboard" className="flex items-center gap-2.5 font-heading text-xl font-semibold">
-          <img src="/icon-64.png" alt="" className="h-8 w-8 rounded-lg" />
-          <span className="text-gradient">Smart Bill Split</span>
+          <img src="/icon-64.png" alt="Smart Bill Split" className="h-8 w-8 rounded-lg" />
+          {/* Hidden below sm: "Smart Bill Split" has nowhere to fit next to
+              the icon and the Home/Logout pill on a phone-width screen
+              without wrapping onto a second line, which nearly doubled the
+              navbar's height. Icon-only is the standard mobile-nav pattern
+              for exactly this squeeze. */}
+          <span className="hidden text-gradient sm:inline">Smart Bill Split</span>
         </Link>
 
         <div className="flex items-center gap-4">

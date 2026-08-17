@@ -261,7 +261,7 @@ export default function BillDetailPage() {
                       style={{ animationDelay: `${240 + Math.min(index, 10) * 40}ms` }}
                     >
                       <div className="flex items-start justify-between gap-3">
-                        <p className="font-medium text-ink">
+                        <p className="text-sm font-medium text-ink">
                           <span className="mr-1.5 text-muted">{index + 1}.</span>
                           {item.name}
                         </p>

@@ -418,6 +418,50 @@ h3 {
     }
   }
 
+  /* A price/amount field's up/down spinner arrows are fiddly to tap
+     precisely on a phone and add nothing - nobody increments a price a cent
+     at a time. Hidden everywhere a .input is used as type="number" (every
+     price/amount field in the app), not just on mobile - they're equally
+     pointless on desktop for this use case. */
+  .input[type='number'] {
+    -moz-appearance: textfield;
+  }
+  .input[type='number']::-webkit-outer-spin-button,
+  .input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  /* The native file-picker button ("Choose File") otherwise renders as bare
+     unstyled OS chrome, clashing hard with every other button in the app -
+     restyled to match .btn-secondary's look via the standard
+     ::file-selector-button pseudo-element instead of a hidden-input/label
+     hack, so every existing type="file" .input across the app (AddBillPage's
+     initial upload and "Scan another part") picks this up with no JS
+     changes.  */
+  .input[type='file'] {
+    cursor: pointer;
+    padding-top: 0.4375rem;
+    padding-bottom: 0.4375rem;
+  }
+  .input[type='file']::file-selector-button {
+    cursor: pointer;
+    margin-right: 0.75rem;
+    padding: 0.4rem 0.9rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-h);
+    font-size: 0.75rem;
+    font-weight: 600;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  }
+  .input[type='file']::file-selector-button:hover {
+    background: var(--accent-bg);
+    border-color: var(--accent-border);
+    color: var(--accent);
+  }
+
   .chip {
     @apply inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs cursor-pointer select-none;
     border: 1px solid var(--border);
