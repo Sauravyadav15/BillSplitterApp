@@ -395,6 +395,16 @@ export default function AddBillPage() {
                   ? 'Crop this next part of the receipt, then confirm - its items will be added to the list below. Trim tightly around just the items in this section.'
                   : 'Drag the corners to trim tightly around the item list - start just above the first item and end right after the total. Leave out the store header/logo above and the footer (payment details, points, promos) below; a tighter crop scans more accurately.'}
               </p>
+              {!isAdditionalScan && (
+                <details className="mb-3">
+                  <summary className="cursor-pointer text-sm font-medium text-accent">See an example</summary>
+                  <img
+                    src="/crop-example.png"
+                    alt="Example of a correctly cropped receipt - the selection starts just above the first item (GROCERY) and ends right after the TOTAL line, leaving out the store header above and the payment/loyalty footer below"
+                    className="mt-2 w-full max-w-sm rounded-lg border border-border shadow-[var(--shadow-sm)]"
+                  />
+                </details>
+              )}
               <ReactCrop crop={crop} onChange={(pixelCrop) => setCrop(clampCropHeight(pixelCrop))}>
                 <img
                   ref={imgRef}
