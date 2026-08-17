@@ -7,11 +7,16 @@ import 'react-image-crop/dist/ReactCrop.css';
 import { getGroup } from '../api/groups';
 import { parseReceipt, createBill } from '../api/bills';
 import { getCroppedImageFile } from '../utils/cropImage';
+import { useToast } from '../context/ToastContext';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorBanner from '../components/ErrorBanner';
 import ReceiptItemsTable from '../components/ReceiptItemsTable';
 import PurchaseDateModal from '../components/PurchaseDateModal';
 import ImageLightbox from '../components/ImageLightbox';
+
+// See scanStageIndex's comment - approximate stages of a scan, not a real
+// progress signal.
+const SCAN_STAGES = ['Uploading photo...', 'Reading the receipt...', 'Extracting items...'];
 
 let localIdCounter = 0;
 function nextLocalId() {
@@ -53,6 +58,7 @@ function defaultCrop(displayWidth, displayHeight) {
 export default function AddBillPage() {
   const { groupId } = useParams();
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const imgRef = useRef(null);
   const additionalFileInputRef = useRef(null);
 
@@ -82,6 +88,13 @@ export default function AddBillPage() {
 
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState(null);
+  // Cycles through a few messages while scanning is true, purely to make a
+  // wait that can genuinely take up to 15 seconds feel like it's making
+  // progress instead of a single static line - there's no real granular
+  // progress signal from the backend (one request, one response), so these
+  // timings are just approximations of where a typical scan actually spends
+  // its time (upload, then OCR, then parsing), not a real progress bar.
+  const [scanStageIndex, setScanStageIndex] = useState(0);
 
   const [items, setItems] = useState([]);
   const [receiptSubtotal, setReceiptSubtotal] = useState(null);
@@ -123,10 +136,18 @@ export default function AddBillPage() {
     })();
   }, [groupId]);
 
+  useEffect(() => {
+    // Reset happens where scanning is set to true (runScan), not here -
+    // this effect only ever starts/cleans up the stage-advance timers, so
+    // it never needs to call setState synchronously in the effect body.
+    if (!scanning) return;
+    const timers = [setTimeout(() => setScanStageIndex(1), 1500), setTimeout(() => setScanStageIndex(2), 4500)];
+    return () => timers.forEach(clearTimeout);
+  }, [scanning]);
+
   const allMemberIds = members.map((m) => m.id);
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
+  const loadReceiptFile = (file) => {
     if (!file) return;
     setIsAdditionalScan(false);
     setRawPreviewUrl(URL.createObjectURL(file));
@@ -141,6 +162,34 @@ export default function AddBillPage() {
     setTipAmount('');
     setTipSplitMode(null);
     setTipPaidBy('');
+  };
+
+  const handleFileChange = (e) => {
+    loadReceiptFile(e.target.files[0]);
+  };
+
+  // Drag-and-drop onto the upload zone as an alternative to the native file
+  // picker - dragActive only tracks whether the drag is currently over the
+  // zone (for the highlight), the actual file handoff reuses the exact same
+  // path as picking a file normally.
+  const [dragActive, setDragActive] = useState(false);
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    if (showCropper) return; // already mid-crop, ignore drops until it's confirmed or cancelled
+    setDragActive(true);
+  };
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    setDragActive(false);
+  };
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setDragActive(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      loadReceiptFile(file);
+    }
   };
 
   // For a long receipt split across multiple photos: crops and scans another
@@ -176,6 +225,7 @@ export default function AddBillPage() {
   const runScan = async (fileToScan) => {
     setScanError(null);
     setScanning(true);
+    setScanStageIndex(0);
     try {
       const data = await parseReceipt(groupId, fileToScan);
       const scannedItems = data.items.map((it) => ({
@@ -342,6 +392,7 @@ export default function AddBillPage() {
         tipAmount: tipDetected ? tipNum : 0,
         tipPaidBy: tipDetected && tipSplitMode === 'individual' ? tipPaidBy : null,
       });
+      showToast(`Bill added - $${data.bill.total_amount}`);
       navigate(`/groups/${groupId}/bills/${data.bill.id}`);
     } catch (err) {
       setSubmitError(err.response?.data?.error || 'Failed to create bill');
@@ -386,7 +437,17 @@ export default function AddBillPage() {
           <label className="field-label" htmlFor="receipt-image">
             Receipt image
           </label>
-          <input id="receipt-image" className="input" type="file" accept="image/*" onChange={handleFileChange} />
+          <div
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className={`rounded-lg border-2 border-dashed p-3 transition-colors ${
+              dragActive ? 'border-accent bg-accent-soft' : 'border-transparent'
+            }`}
+          >
+            <input id="receipt-image" className="input" type="file" accept="image/*" onChange={handleFileChange} />
+            <p className="mt-1.5 text-xs text-muted">or drag a photo in anywhere in this box</p>
+          </div>
 
           {showCropper && rawPreviewUrl && (
             <div className="mt-4">
@@ -465,7 +526,7 @@ export default function AddBillPage() {
                 className="hidden"
                 onChange={handleAdditionalFileChange}
               />
-              {scanning && <LoadingSpinner message="Scanning receipt for items - this can take up to 15 seconds..." />}
+              {scanning && <LoadingSpinner message={SCAN_STAGES[scanStageIndex]} />}
               <ErrorBanner message={scanError} />
             </div>
           )}

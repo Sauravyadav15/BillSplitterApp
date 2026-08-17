@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { getGroup, addMember, removeMember } from '../api/groups';
 import { listBills } from '../api/bills';
 import { getBalances } from '../api/balances';
@@ -16,6 +17,7 @@ import UserAvatar from '../components/UserAvatar';
 import AddMemberForm from '../components/AddMemberForm';
 import AddMembersModal from '../components/AddMembersModal';
 import BillList from '../components/BillList';
+import ActivityFeed from '../components/ActivityFeed';
 import BalancesPanel from '../components/BalancesPanel';
 import RecordSettlementForm from '../components/RecordSettlementForm';
 import StatTile from '../components/StatTile';
@@ -40,6 +42,7 @@ export default function GroupPage() {
   const { groupId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { showToast } = useToast();
 
   const [groupState, setGroupState] = useState({ data: null, loading: true, error: null });
   const [billsState, setBillsState] = useState({ data: null, loading: true, error: null });
@@ -111,6 +114,7 @@ export default function GroupPage() {
   const handleAddMember = async (email) => {
     await addMember(groupId, { email });
     await fetchGroup();
+    showToast('Member added to the group');
   };
 
   const handleRemoveMember = async (member) => {
@@ -133,9 +137,24 @@ export default function GroupPage() {
   };
 
   const handleRecordSettlement = async ({ paid_to, amount }) => {
+    const balanceBefore = myBalance;
     await createSettlement(groupId, { paid_to, amount });
     setPrefillSettlement(null);
-    await Promise.all([fetchSettlements(), fetchBalances()]);
+    const [, balancesData] = await Promise.all([fetchSettlements(), getBalances(groupId)]);
+    setBalancesState({ data: balancesData, loading: false, error: null });
+
+    // A special moment worth calling out distinctly from the routine
+    // confirmation toast: this settlement brought the balance from
+    // non-zero to (about) zero, i.e. it's the one that actually finished
+    // clearing things up - not just "was already zero" (a brand-new group
+    // with no bills is trivially zero too, and shouldn't get a fake
+    // celebration on a page that hasn't changed anything).
+    const balanceAfter = Number(balancesData.balances.find((b) => b.user_id === user?.id)?.net_balance || 0);
+    if (Math.abs(balanceBefore) >= 0.01 && Math.abs(balanceAfter) < 0.01) {
+      showToast("You're all settled up!", { tone: 'celebration', icon: '🎉' });
+    } else {
+      showToast('Settlement recorded');
+    }
   };
 
   const membersById = new Map((groupState.data?.members || []).map((m) => [m.id, m]));
@@ -223,6 +242,31 @@ export default function GroupPage() {
               members={groupState.data?.members}
               currentUserId={user?.id}
               onSelectSuggestion={setPrefillSettlement}
+            />
+          )
+        )}
+      </div>
+
+      {/* Recent activity - what's actually been happening, not just the
+          current-state snapshot the Balances/Bills cards show. */}
+      <div className="reveal card mb-6 p-6" style={{ animationDelay: '210ms' }}>
+        <h2 className="mb-4">Recent Activity</h2>
+        <ErrorBanner message={billsState.error || settlementsState.error} />
+        {billsState.loading || settlementsState.loading ? (
+          <div className="flex flex-col gap-2">
+            {[0, 1, 2].map((i) => (
+              <Skeleton key={i} className="h-9 w-full" />
+            ))}
+          </div>
+        ) : (
+          billsState.data &&
+          settlementsState.data && (
+            <ActivityFeed
+              groupId={groupId}
+              bills={billsState.data.bills}
+              settlements={settlementsState.data.settlements}
+              membersById={membersById}
+              currentUserId={user?.id}
             />
           )
         )}

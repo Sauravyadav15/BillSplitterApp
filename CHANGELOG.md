@@ -4,6 +4,14 @@ All notable changes to this project are documented here. Format loosely follows 
 
 ## [Unreleased]
 
+### Added
+- App-wide toast notifications (`context/ToastContext.jsx`, `components/ToastContainer.jsx`) confirming write actions that previously navigated away with no feedback: creating a bill, recording a settlement, adding a member, creating a group. Lives above the router so a toast queued right before a `navigate()` call survives the route change instead of unmounting with the page that triggered it.
+- A distinct "You're all settled up! 🎉" celebration toast when recording a settlement brings a balance from non-zero to (about) zero - not just whenever a balance happens to already be zero (a brand-new group is trivially zero and shouldn't get a fake celebration).
+- Drag-and-drop onto `AddBillPage`'s receipt upload zone as an alternative to the native file picker, with a highlight on drag-over.
+- Staged scan-progress messages ("Uploading photo..." → "Reading the receipt..." → "Extracting items...") during OCR instead of one static line for a wait that can take up to 15 seconds - approximate stages, not a real backend progress signal, but measurably better for perceived wait time.
+- `BillDetailPage`'s "Who Owes What" rows now show an avatar → avatar arrow (debtor → payer), matching `BalancesPanel`'s existing suggested-settlements treatment, instead of a name-only text row.
+- `GroupPage` gained a "Recent Activity" card (`components/ActivityFeed.jsx`) - a merged, reverse-chronological timeline of bills added and settlements recorded, computed client-side from data the page already fetches (no new backend endpoint). Answers "what's actually been happening" alongside the existing current-state-only Balances/Bills cards.
+
 ### Fixed
 - `Navbar`'s wordmark now scales down (icon + text both shrink, `whitespace-nowrap`) instead of hiding on mobile, so "Smart Bill Split" stays visible, clickable, and on one line alongside a correspondingly shrunk Home/Logout button pill down to a 375px-wide screen.
 - Added `scrollbar-gutter: stable` to `html` - without it, a `mx-auto`-centered page sits centered within `(viewport width - scrollbar width)` on a page tall enough to scroll, but dead-center in the full viewport on a page that isn't, so the same centered container reads a few pixels off-center depending on which page you're comparing it against (most visible on `GroupPage`, which has enough sections to reliably scroll).

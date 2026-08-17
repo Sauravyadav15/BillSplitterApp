@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { listGroups, createGroup } from '../api/groups';
 import { getMyBalanceSummary } from '../api/balances';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -19,6 +20,7 @@ function firstName(name) {
 export default function DashboardPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { showToast } = useToast();
 
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -62,6 +64,7 @@ export default function DashboardPage() {
   const handleCreate = async ({ name, icon, color_theme }) => {
     const data = await createGroup({ name, icon, color_theme });
     setShowCreateModal(false);
+    showToast(`"${data.group.name}" created`);
     navigate(`/groups/${data.group.id}`);
   };
 

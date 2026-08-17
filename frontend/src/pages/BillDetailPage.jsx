@@ -83,6 +83,7 @@ export default function BillDetailPage() {
     .sort((a, b) => b.total - a.total);
   const totalOwedBack = owedToPayer.reduce((sum, u) => sum + u.total, 0);
   const payerIsMe = bill?.added_by === user?.id;
+  const payer = { name: bill?.added_by_name, avatar: bill?.added_by_avatar };
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-10 sm:px-10">
@@ -218,9 +219,11 @@ export default function BillDetailPage() {
                               isMe ? 'bg-accent-soft' : 'bg-surface-2'
                             }`}
                           >
-                            <div className="flex min-w-0 items-center gap-2.5">
-                              <UserAvatar user={u} className="h-8 w-8 shrink-0 text-xs" />
-                              <span className="truncate text-ink">
+                            <div className="flex min-w-0 items-center gap-1.5">
+                              <UserAvatar user={u} className="h-7 w-7 shrink-0 text-[10px]" />
+                              <span className="shrink-0 text-muted">&rarr;</span>
+                              <UserAvatar user={payer} className="h-7 w-7 shrink-0 text-[10px]" />
+                              <span className="min-w-0 truncate pl-1 text-ink">
                                 <span className="font-medium">{isMe ? 'You' : u.name}</span>
                                 <span className="text-muted">
                                   {' '}
