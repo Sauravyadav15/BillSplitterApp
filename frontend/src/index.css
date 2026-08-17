@@ -115,6 +115,15 @@
 
 html {
   overflow-x: hidden;
+  /* Reserves the vertical scrollbar's width unconditionally, instead of
+     only when a page is actually tall enough to scroll. Without this, a
+     mx-auto-centered page's content sits centered within (viewport width -
+     scrollbar width) whenever a scrollbar is present, but dead-center in
+     the full viewport width on a page that doesn't scroll - the same
+     centered container ends up a few pixels left of true-center on some
+     pages and dead-center on others, which reads as "the left margin is
+     bigger" on whichever page you happen to compare it against. */
+  scrollbar-gutter: stable;
 }
 
 body {

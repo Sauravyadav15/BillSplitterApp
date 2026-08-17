@@ -14,18 +14,20 @@ export default function Navbar() {
       className="full-bleed-sticky z-40 rounded-b-2xl border-b border-border bg-surface/80 shadow-md backdrop-blur-md transition-transform duration-300"
       style={{ transform: visible ? 'translateY(0)' : 'translateY(-100%)' }}
     >
-      <div className="mx-auto flex max-w-[1180px] items-center justify-between px-6 py-4">
-        <Link to="/dashboard" className="flex items-center gap-2.5 font-heading text-xl font-semibold">
-          <img src="/icon-64.png" alt="Smart Bill Split" className="h-8 w-8 rounded-lg" />
-          {/* Hidden below sm: "Smart Bill Split" has nowhere to fit next to
-              the icon and the Home/Logout pill on a phone-width screen
-              without wrapping onto a second line, which nearly doubled the
-              navbar's height. Icon-only is the standard mobile-nav pattern
-              for exactly this squeeze. */}
-          <span className="hidden text-gradient sm:inline">Smart Bill Split</span>
+      <div className="mx-auto flex max-w-[1180px] items-center justify-between gap-2 px-4 py-3 sm:gap-4 sm:px-6 sm:py-4">
+        {/* Scales down with whitespace-nowrap below sm instead of hiding -
+            shrinking the icon and the Home/Logout pill alongside it is
+            enough to keep it on one line without needing to drop the name
+            entirely on a phone screen. */}
+        <Link
+          to="/dashboard"
+          className="flex shrink-0 items-center gap-1.5 whitespace-nowrap font-heading text-base font-semibold sm:gap-2.5 sm:text-xl"
+        >
+          <img src="/icon-64.png" alt="Smart Bill Split" className="h-7 w-7 shrink-0 rounded-lg sm:h-8 sm:w-8" />
+          <span className="text-gradient">Smart Bill Split</span>
         </Link>
 
-        <div className="flex items-center gap-4">
+        <div className="flex shrink-0 items-center gap-2 sm:gap-4">
           {user && (
             <Link
               to="/profile"
@@ -36,14 +38,14 @@ export default function Navbar() {
             </Link>
           )}
 
-          <div className="flex items-center gap-1 rounded-xl border border-border p-1">
-            <Link to="/dashboard" className="btn btn-ghost !rounded-lg !px-3 !py-1.5 text-xs">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+          <div className="flex items-center gap-0.5 rounded-xl border border-border p-1 sm:gap-1">
+            <Link to="/dashboard" className="btn btn-ghost !rounded-lg !px-2 !py-1 text-xs sm:!px-3 sm:!py-1.5">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3.5 w-3.5 sm:h-4 sm:w-4">
                 <path strokeLinecap="round" strokeLinejoin="round" d="m3 11 9-8 9 8M5 10v10h5v-6h4v6h5V10" />
               </svg>
               Home
             </Link>
-            <button onClick={logout} className="btn btn-ghost !rounded-lg !px-3 !py-1.5 text-xs">
+            <button onClick={logout} className="btn btn-ghost !rounded-lg !px-2 !py-1 text-xs sm:!px-3 sm:!py-1.5">
               Logout
             </button>
           </div>

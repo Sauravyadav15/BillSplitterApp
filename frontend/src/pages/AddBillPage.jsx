@@ -392,8 +392,8 @@ export default function AddBillPage() {
             <div className="mt-4">
               <p className="mb-2 text-sm text-text">
                 {isAdditionalScan
-                  ? "Crop this next part of the receipt, then confirm - its items will be added to the list below."
-                  : 'Drag the corners to trim out the background, then confirm - a tighter crop scans more accurately.'}
+                  ? 'Crop this next part of the receipt, then confirm - its items will be added to the list below. Trim tightly around just the items in this section.'
+                  : 'Drag the corners to trim tightly around the item list - start just above the first item and end right after the total. Leave out the store header/logo above and the footer (payment details, points, promos) below; a tighter crop scans more accurately.'}
               </p>
               <ReactCrop crop={crop} onChange={(pixelCrop) => setCrop(clampCropHeight(pixelCrop))}>
                 <img
