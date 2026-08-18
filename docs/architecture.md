@@ -1,6 +1,6 @@
 # Architecture
 
-This is the fuller, human-readable sibling of the architecture summary in [CLAUDE.md](../CLAUDE.md) — read that for the terse version; this doc goes deeper on data flow and the trickier subsystems (OCR, debt simplification).
+This is the deeper, human-readable architecture reference for the project — request flow, data model, and the trickier subsystems (OCR, debt simplification) beyond what the top-level [`README`](../README.md) covers.
 
 ## Two independent apps, one repo
 

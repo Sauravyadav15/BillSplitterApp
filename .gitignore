@@ -1,0 +1,7 @@
+# AI coding assistant instructions - kept locally for continued development,
+# not published to the repo.
+CLAUDE.md
+
+# OS/editor noise
+.DS_Store
+Thumbs.db

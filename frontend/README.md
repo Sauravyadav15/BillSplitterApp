@@ -11,7 +11,7 @@ npm install
 npm run dev
 ```
 
-Expects the backend running at `http://localhost:5000` (hardcoded in `src/api/client.js` as `API_BASE_URL`). The logged-in user's JWT is kept in `localStorage` (`billsplit_token`) and attached to every request by `client.js`'s axios interceptor; a `401` response clears it and redirects to `/login`.
+Expects the backend at `http://localhost:5000` by default - point it at a deployed backend instead via `VITE_API_BASE_URL` (see [`.env.example`](.env.example)), read in `src/api/client.js` as `API_BASE_URL`. The logged-in user's JWT is kept in `localStorage` (`billsplit_token`) and attached to every request by `client.js`'s axios interceptor; a `401` response clears it and redirects to `/login`.
 
 ## Commands
 
