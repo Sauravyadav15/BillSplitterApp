@@ -270,7 +270,7 @@ body {
    entire page ~127px wider than the screen - min-width: 0 alone (tried
    first) did not fix it, since the problem was never a min-width:auto
    shrink limit, it was the item never being told to fill 100% at all. */
-#root > * {
+#root > *:not(.full-bleed):not(.full-bleed-sticky) {
   width: 100%;
   min-width: 0;
 }

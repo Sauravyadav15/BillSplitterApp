@@ -36,7 +36,7 @@ export default function GroupIconPicker({ icon, onIconChange, theme, onThemeChan
               aria-label={`Icon ${emoji}`}
               aria-pressed={icon === emoji}
               onClick={() => onIconChange(emoji)}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-lg transition-transform hover:scale-110"
+              className="flex aspect-square w-full min-w-0 items-center justify-center rounded-lg text-lg transition-transform hover:scale-110"
               style={{ outline: icon === emoji ? '2px solid var(--text-h)' : 'none', outlineOffset: '1px' }}
             >
               {emoji}

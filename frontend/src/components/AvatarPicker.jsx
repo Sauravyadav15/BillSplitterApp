@@ -16,10 +16,10 @@ export default function AvatarPicker({ value, onChange }) {
             onClick={() => onChange(seed)}
             aria-label={`Avatar option ${seed + 1}`}
             aria-pressed={value === seed}
-            className="flex items-center justify-center rounded-full p-0.5 transition-transform hover:scale-110"
+            className="flex w-full min-w-0 items-center justify-center rounded-full p-0.5 transition-transform hover:scale-110"
             style={{ outline: value === seed ? '2px solid var(--accent)' : 'none', outlineOffset: '2px' }}
           >
-            <HeroAvatar seed={seed} className="h-8 w-8" />
+            <HeroAvatar seed={seed} className="aspect-square w-full" />
           </button>
         ))}
       </div>
